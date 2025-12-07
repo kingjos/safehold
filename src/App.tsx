@@ -7,7 +7,9 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ClientDashboard from "./pages/dashboard/ClientDashboard";
+import ClientWallet from "./pages/dashboard/ClientWallet";
 import VendorDashboard from "./pages/dashboard/VendorDashboard";
+import VendorWallet from "./pages/dashboard/VendorWallet";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import CreateEscrow from "./pages/dashboard/CreateEscrow";
 import NotFound from "./pages/NotFound";
@@ -25,8 +27,10 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<ClientDashboard />} />
+          <Route path="/dashboard/wallet" element={<ClientWallet />} />
           <Route path="/dashboard/escrows/new" element={<CreateEscrow />} />
           <Route path="/vendor" element={<VendorDashboard />} />
+          <Route path="/vendor/wallet" element={<VendorWallet />} />
           <Route path="/admin" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
