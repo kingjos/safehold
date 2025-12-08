@@ -15,6 +15,7 @@ import VendorSettings from "./pages/dashboard/VendorSettings";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import AdminSettings from "./pages/dashboard/AdminSettings";
 import CreateEscrow from "./pages/dashboard/CreateEscrow";
+import TransactionDetail from "./pages/dashboard/TransactionDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +34,9 @@ const App = () => (
           <Route path="/dashboard/wallet" element={<ClientWallet />} />
           <Route path="/dashboard/settings" element={<ClientSettings />} />
           <Route path="/dashboard/escrows/new" element={<CreateEscrow />} />
+          <Route path="/dashboard/transactions/:id" element={<TransactionDetail userType="client" />} />
           <Route path="/vendor" element={<VendorDashboard />} />
+          <Route path="/vendor/transactions/:id" element={<TransactionDetail userType="vendor" />} />
           <Route path="/vendor/wallet" element={<VendorWallet />} />
           <Route path="/vendor/settings" element={<VendorSettings />} />
           <Route path="/admin" element={<AdminDashboard />} />
