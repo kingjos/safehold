@@ -15,6 +15,7 @@ import {
   User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -108,12 +109,17 @@ export const DashboardLayout = ({ children, userType }: DashboardLayoutProps) =>
           </div>
           <span className="font-display font-bold">SafeHold</span>
         </Link>
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 hover:bg-accent rounded-lg transition-colors"
-        >
-          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <NotificationDropdown 
+            notificationsPath={userType === "vendor" ? "/vendor/notifications" : "/dashboard/notifications"} 
+          />
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-accent rounded-lg transition-colors"
+          >
+            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </header>
 
       {/* Mobile Sidebar */}
