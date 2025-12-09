@@ -1,12 +1,26 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Mail, Lock, Eye, EyeOff, User, Phone, Building2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
 
 type UserType = "client" | "vendor";
+
+const registerSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,14 +35,25 @@ const Register = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signUp, user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.password !== formData.confirmPassword) {
+    // Validate input
+    const validation = registerSchema.safeParse(formData);
+    if (!validation.success) {
       toast({
-        title: "Passwords don't match",
-        description: "Please ensure both passwords are the same.",
+        title: "Validation Error",
+        description: validation.error.errors[0].message,
         variant: "destructive"
       });
       return;
@@ -36,14 +61,56 @@ const Register = () => {
     
     setIsLoading(true);
     
-    setTimeout(() => {
+    const { error } = await signUp(formData.email, formData.password, {
+      full_name: formData.fullName,
+      phone: formData.phone,
+    });
+
+    if (error) {
+      let message = "An error occurred during registration.";
+      if (error.message.includes("already registered")) {
+        message = "This email is already registered. Please sign in instead.";
+      }
+      
       toast({
-        title: "Account created!",
-        description: "Please check your email to verify your account.",
+        title: "Registration Failed",
+        description: message,
+        variant: "destructive"
       });
       setIsLoading(false);
-    }, 1500);
+      return;
+    }
+
+    // If vendor, add vendor role
+    if (userType === "vendor") {
+      // Get current user after signup
+      const { data: { user: newUser } } = await supabase.auth.getUser();
+      if (newUser) {
+        await supabase.from('user_roles').insert({
+          user_id: newUser.id,
+          role: 'vendor'
+        });
+        
+        // Update profile with business name
+        if (formData.businessName) {
+          await supabase.from('profiles').update({
+            full_name: formData.businessName
+          }).eq('user_id', newUser.id);
+        }
+      }
+    }
+
+    toast({
+      title: "Account created!",
+      description: "Welcome to SafeHold. Redirecting to your dashboard...",
+    });
+    
+    navigate("/dashboard");
   };
+
+  if (loading) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex">

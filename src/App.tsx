@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -29,40 +31,118 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <NotificationProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<ClientDashboard />} />
-            <Route path="/dashboard/wallet" element={<ClientWallet />} />
-            <Route path="/dashboard/settings" element={<ClientSettings />} />
-            <Route path="/dashboard/notifications" element={<ClientNotifications />} />
-            <Route path="/dashboard/disputes" element={<ClientDisputes />} />
-            <Route path="/dashboard/disputes/:id" element={<DisputeDetail userType="client" />} />
-            <Route path="/dashboard/escrows/new" element={<CreateEscrow />} />
-            <Route path="/dashboard/transactions/:id" element={<TransactionDetail userType="client" />} />
-            <Route path="/vendor" element={<VendorDashboard />} />
-            <Route path="/vendor/transactions/:id" element={<TransactionDetail userType="vendor" />} />
-            <Route path="/vendor/wallet" element={<VendorWallet />} />
-            <Route path="/vendor/settings" element={<VendorSettings />} />
-            <Route path="/vendor/notifications" element={<VendorNotifications />} />
-            <Route path="/vendor/disputes" element={<VendorDisputes />} />
-            <Route path="/vendor/disputes/:id" element={<DisputeDetail userType="vendor" />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="/admin/disputes" element={<AdminDisputes />} />
-            <Route path="/admin/disputes/:id" element={<DisputeDetail userType="admin" />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </NotificationProvider>
+    <AuthProvider>
+      <NotificationProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <ClientDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/wallet" element={
+                <ProtectedRoute>
+                  <ClientWallet />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/settings" element={
+                <ProtectedRoute>
+                  <ClientSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/notifications" element={
+                <ProtectedRoute>
+                  <ClientNotifications />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/disputes" element={
+                <ProtectedRoute>
+                  <ClientDisputes />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/disputes/:id" element={
+                <ProtectedRoute>
+                  <DisputeDetail userType="client" />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/escrows/new" element={
+                <ProtectedRoute>
+                  <CreateEscrow />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/transactions/:id" element={
+                <ProtectedRoute>
+                  <TransactionDetail userType="client" />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <VendorDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor/transactions/:id" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <TransactionDetail userType="vendor" />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor/wallet" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <VendorWallet />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor/settings" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <VendorSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor/notifications" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <VendorNotifications />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor/disputes" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <VendorDisputes />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor/disputes/:id" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <DisputeDetail userType="vendor" />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/settings" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/disputes" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDisputes />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/disputes/:id" element={
+                <ProtectedRoute requiredRole="admin">
+                  <DisputeDetail userType="admin" />
+                </ProtectedRoute>
+              } />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </NotificationProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

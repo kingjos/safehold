@@ -14,16 +14,321 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      dispute_events: {
+        Row: {
+          created_at: string
+          description: string
+          dispute_id: string
+          event_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          dispute_id: string
+          event_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          dispute_id?: string
+          event_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_events_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          opened_by: string
+          reason: Database["public"]["Enums"]["dispute_reason"]
+          resolution: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["dispute_status"]
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          opened_by: string
+          reason: Database["public"]["Enums"]["dispute_reason"]
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"]
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          opened_by?: string
+          reason?: Database["public"]["Enums"]["dispute_reason"]
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"]
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          dispute_id: string | null
+          id: string
+          message: string
+          read: boolean
+          title: string
+          transaction_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          transaction_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          transaction_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transaction_events: {
+        Row: {
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          transaction_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          event_type: string
+          id?: string
+          transaction_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          transaction_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          funded_at: string | null
+          id: string
+          platform_fee: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["escrow_status"]
+          title: string
+          updated_at: string
+          vendor_email: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          funded_at?: string | null
+          id?: string
+          platform_fee?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["escrow_status"]
+          title: string
+          updated_at?: string
+          vendor_email?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          funded_at?: string | null
+          id?: string
+          platform_fee?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["escrow_status"]
+          title?: string
+          updated_at?: string
+          vendor_email?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "client" | "vendor" | "admin"
+      dispute_reason:
+        | "service_not_delivered"
+        | "quality_issues"
+        | "late_delivery"
+        | "payment_dispute"
+        | "communication_issues"
+        | "scope_disagreement"
+        | "other"
+      dispute_status:
+        | "open"
+        | "under_review"
+        | "awaiting_response"
+        | "resolved"
+        | "closed"
+        | "escalated"
+      escrow_status:
+        | "pending_funding"
+        | "funded"
+        | "in_progress"
+        | "pending_release"
+        | "completed"
+        | "disputed"
+        | "cancelled"
+        | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +455,35 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["client", "vendor", "admin"],
+      dispute_reason: [
+        "service_not_delivered",
+        "quality_issues",
+        "late_delivery",
+        "payment_dispute",
+        "communication_issues",
+        "scope_disagreement",
+        "other",
+      ],
+      dispute_status: [
+        "open",
+        "under_review",
+        "awaiting_response",
+        "resolved",
+        "closed",
+        "escalated",
+      ],
+      escrow_status: [
+        "pending_funding",
+        "funded",
+        "in_progress",
+        "pending_release",
+        "completed",
+        "disputed",
+        "cancelled",
+        "refunded",
+      ],
+    },
   },
 } as const
