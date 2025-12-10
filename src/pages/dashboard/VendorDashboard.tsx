@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { 
@@ -9,57 +10,131 @@ import {
   TrendingUp,
   FileText,
   Star,
-  Users
+  Users,
+  Loader2
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Tables } from "@/integrations/supabase/types";
 
-const activeJobs = [
-  {
-    id: "ESC-001",
-    title: "Website Development",
-    client: "ABC Company Ltd",
-    amount: 350000,
-    status: "in_progress",
-    deadline: "2024-01-30"
-  },
-  {
-    id: "ESC-002",
-    title: "E-commerce Platform",
-    client: "Fashion Hub Nigeria",
-    amount: 500000,
-    status: "pending_start",
-    deadline: "2024-02-15"
-  }
-];
+type Transaction = Tables<'transactions'>;
 
 const getStatusBadge = (status: string) => {
   const styles: Record<string, string> = {
-    pending_start: "status-pending",
+    pending_funding: "status-pending",
+    funded: "status-active",
     in_progress: "status-active",
+    pending_release: "bg-primary/10 text-primary border-primary/20",
     completed: "status-completed",
-    awaiting_confirmation: "bg-primary/10 text-primary border-primary/20"
+    disputed: "status-disputed",
+    cancelled: "status-pending",
+    refunded: "status-pending"
   };
   const labels: Record<string, string> = {
-    pending_start: "Pending Start",
+    pending_funding: "Pending Funding",
+    funded: "Ready to Start",
     in_progress: "In Progress",
+    pending_release: "Pending Release",
     completed: "Completed",
-    awaiting_confirmation: "Awaiting Confirmation"
+    disputed: "Disputed",
+    cancelled: "Cancelled",
+    refunded: "Refunded"
   };
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${styles[status]}`}>
-      {labels[status]}
+    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${styles[status] || "status-pending"}`}>
+      {labels[status] || status}
     </span>
   );
 };
 
 const VendorDashboard = () => {
+  const { user, profile } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    pendingRelease: 0,
+    earnedThisMonth: 0,
+    activeJobs: 0
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchTransactions();
+      fetchStats();
+    }
+  }, [user]);
+
+  const fetchTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('vendor_id', user?.id)
+        .in('status', ['funded', 'in_progress', 'pending_release'])
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      // Get pending release amount
+      const { data: pendingData } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('vendor_id', user?.id)
+        .eq('status', 'pending_release');
+
+      const pendingRelease = pendingData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      // Get earned this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: earnedData } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('vendor_id', user?.id)
+        .eq('status', 'completed')
+        .gte('completed_at', startOfMonth.toISOString());
+
+      const earnedThisMonth = earnedData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      // Get active jobs count
+      const { count: activeCount } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('vendor_id', user?.id)
+        .in('status', ['funded', 'in_progress', 'pending_release']);
+
+      setStats({
+        pendingRelease,
+        earnedThisMonth,
+        activeJobs: activeCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const displayName = profile?.full_name?.split(' ')[0] || 'Vendor';
+
   return (
     <DashboardLayout userType="vendor">
       <div className="p-6 lg:p-8 space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold">Vendor Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">Welcome, {displayName}!</h1>
             <p className="text-muted-foreground">Manage your jobs and earnings.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -94,7 +169,7 @@ const VendorDashboard = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">Pending Release</p>
-            <p className="text-2xl font-display font-bold">₦850,000</p>
+            <p className="text-2xl font-display font-bold">₦{stats.pendingRelease.toLocaleString()}</p>
           </div>
 
           <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
@@ -104,7 +179,7 @@ const VendorDashboard = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">Earned This Month</p>
-            <p className="text-2xl font-display font-bold">₦2,400,000</p>
+            <p className="text-2xl font-display font-bold">₦{stats.earnedThisMonth.toLocaleString()}</p>
           </div>
 
           <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
@@ -114,7 +189,7 @@ const VendorDashboard = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">Active Jobs</p>
-            <p className="text-2xl font-display font-bold">2</p>
+            <p className="text-2xl font-display font-bold">{stats.activeJobs}</p>
           </div>
         </div>
 
@@ -132,10 +207,12 @@ const VendorDashboard = () => {
                 <ArrowDownLeft className="w-5 h-5 text-success" />
                 Request Payment
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <FileText className="w-5 h-5 text-secondary" />
-                View Completed Jobs
-              </Button>
+              <Link to="/vendor/escrows">
+                <Button variant="outline" className="w-full justify-start gap-3">
+                  <FileText className="w-5 h-5 text-secondary" />
+                  View All Jobs
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -147,40 +224,47 @@ const VendorDashboard = () => {
                 View all
               </Link>
             </div>
-            <div className="space-y-4">
-              {activeJobs.map((job) => (
-                <div 
-                  key={job.id}
-                  className="p-4 rounded-xl bg-background border border-border hover:border-primary/30 transition-colors"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="font-semibold">{job.title}</p>
-                      <p className="text-sm text-muted-foreground">{job.client}</p>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground">No active jobs yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Jobs will appear here when clients assign you to escrows</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {transactions.map((job) => (
+                  <Link 
+                    key={job.id}
+                    to={`/vendor/escrows/${job.id}`}
+                    className="block p-4 rounded-xl bg-background border border-border hover:border-primary/30 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-semibold">{job.title}</p>
+                        <p className="text-sm text-muted-foreground">Client ID: {job.client_id.slice(0, 8)}...</p>
+                      </div>
+                      {getStatusBadge(job.status)}
                     </div>
-                    {getStatusBadge(job.status)}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Escrow Amount</p>
-                      <p className="font-display font-bold text-lg">₦{job.amount.toLocaleString()}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Escrow Amount</p>
+                        <p className="font-display font-bold text-lg">₦{Number(job.amount).toLocaleString()}</p>
+                      </div>
+                      {job.due_date && (
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Deadline</p>
+                          <p className="font-medium">{new Date(job.due_date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Deadline</p>
-                      <p className="font-medium">{new Date(job.deadline).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex gap-2">
-                    <Button variant="default" size="sm" className="flex-1">
-                      Mark Complete
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
