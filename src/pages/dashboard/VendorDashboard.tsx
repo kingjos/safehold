@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Tables } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
 
 type Transaction = Tables<'transactions'>;
 
@@ -52,11 +53,13 @@ const VendorDashboard = () => {
   const { user, profile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [markingComplete, setMarkingComplete] = useState<string | null>(null);
   const [stats, setStats] = useState({
     pendingRelease: 0,
     earnedThisMonth: 0,
     activeJobs: 0
   });
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -123,6 +126,52 @@ const VendorDashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const handleMarkComplete = async (transactionId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setMarkingComplete(transactionId);
+    try {
+      // Update transaction status to pending_release
+      const { error: updateError } = await supabase
+        .from('transactions')
+        .update({ status: 'pending_release' })
+        .eq('id', transactionId)
+        .eq('vendor_id', user?.id);
+
+      if (updateError) throw updateError;
+
+      // Add transaction event
+      const { error: eventError } = await supabase
+        .from('transaction_events')
+        .insert({
+          transaction_id: transactionId,
+          event_type: 'marked_complete',
+          description: 'Vendor marked the job as complete',
+          user_id: user?.id
+        });
+
+      if (eventError) console.error('Error creating event:', eventError);
+
+      toast({
+        title: "Job marked as complete",
+        description: "The client will be notified to review and release payment.",
+      });
+
+      // Refresh data
+      fetchTransactions();
+      fetchStats();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setMarkingComplete(null);
     }
   };
 
@@ -261,6 +310,34 @@ const VendorDashboard = () => {
                         </div>
                       )}
                     </div>
+                    {(job.status === 'funded' || job.status === 'in_progress') && (
+                      <div className="mt-4">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="w-full"
+                          disabled={markingComplete === job.id}
+                          onClick={(e) => handleMarkComplete(job.id, e)}
+                        >
+                          {markingComplete === job.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Marking Complete...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Mark as Complete
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    {job.status === 'pending_release' && (
+                      <div className="mt-4 p-2 rounded-lg bg-primary/10 text-center">
+                        <p className="text-sm text-primary font-medium">Awaiting client confirmation</p>
+                      </div>
+                    )}
                   </Link>
                 ))}
               </div>
