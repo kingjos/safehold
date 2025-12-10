@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { 
@@ -9,73 +10,130 @@ import {
   CheckCircle2, 
   AlertCircle,
   TrendingUp,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Tables } from "@/integrations/supabase/types";
 
-const recentTransactions = [
-  {
-    id: "ESC-001",
-    title: "Website Development",
-    vendor: "TechCorp Nigeria",
-    amount: 350000,
-    status: "in_progress",
-    date: "2024-01-15"
-  },
-  {
-    id: "ESC-002",
-    title: "Logo Design",
-    vendor: "Creative Studios",
-    amount: 75000,
-    status: "completed",
-    date: "2024-01-10"
-  },
-  {
-    id: "ESC-003",
-    title: "Mobile App Development",
-    vendor: "AppBuilders Ltd",
-    amount: 500000,
-    status: "pending",
-    date: "2024-01-08"
-  },
-  {
-    id: "ESC-004",
-    title: "Content Writing",
-    vendor: "WriteWell Agency",
-    amount: 45000,
-    status: "disputed",
-    date: "2024-01-05"
-  }
-];
+type Transaction = Tables<'transactions'>;
 
 const getStatusBadge = (status: string) => {
-  const styles = {
-    pending: "status-pending",
+  const styles: Record<string, string> = {
+    pending_funding: "status-pending",
+    funded: "status-active",
     in_progress: "status-active",
+    pending_release: "status-active",
     completed: "status-completed",
-    disputed: "status-disputed"
+    disputed: "status-disputed",
+    cancelled: "status-pending",
+    refunded: "status-pending"
   };
-  const labels = {
-    pending: "Pending",
+  const labels: Record<string, string> = {
+    pending_funding: "Pending Funding",
+    funded: "Funded",
     in_progress: "In Progress",
+    pending_release: "Pending Release",
     completed: "Completed",
-    disputed: "Disputed"
+    disputed: "Disputed",
+    cancelled: "Cancelled",
+    refunded: "Refunded"
   };
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${styles[status as keyof typeof styles]}`}>
-      {labels[status as keyof typeof labels]}
+    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${styles[status] || "status-pending"}`}>
+      {labels[status] || status}
     </span>
   );
 };
 
 const ClientDashboard = () => {
+  const { user, profile } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    inEscrow: 0,
+    releasedThisMonth: 0,
+    activeDisputes: 0
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchTransactions();
+      fetchStats();
+    }
+  }, [user]);
+
+  const fetchTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('client_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      // Get in escrow amount (funded + in_progress + pending_release)
+      const { data: escrowData } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('client_id', user?.id)
+        .in('status', ['funded', 'in_progress', 'pending_release']);
+
+      const inEscrow = escrowData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      // Get released this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: releasedData } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('client_id', user?.id)
+        .eq('status', 'completed')
+        .gte('completed_at', startOfMonth.toISOString());
+
+      const releasedThisMonth = releasedData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      // Get active disputes count
+      const { count: disputeCount } = await supabase
+        .from('disputes')
+        .select('*', { count: 'exact', head: true })
+        .eq('opened_by', user?.id)
+        .in('status', ['open', 'under_review', 'awaiting_response', 'escalated']);
+
+      setStats({
+        inEscrow,
+        releasedThisMonth,
+        activeDisputes: disputeCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const displayName = profile?.full_name?.split(' ')[0] || 'there';
+
   return (
     <DashboardLayout userType="client">
       <div className="p-6 lg:p-8 space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold">Welcome back, John!</h1>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">Welcome back, {displayName}!</h1>
             <p className="text-muted-foreground">Here's what's happening with your escrows.</p>
           </div>
           <Link to="/dashboard/escrows/new">
@@ -109,7 +167,7 @@ const ClientDashboard = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">In Escrow</p>
-            <p className="text-2xl font-display font-bold">₦850,000</p>
+            <p className="text-2xl font-display font-bold">₦{stats.inEscrow.toLocaleString()}</p>
           </div>
 
           <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
@@ -119,7 +177,7 @@ const ClientDashboard = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">Released This Month</p>
-            <p className="text-2xl font-display font-bold">₦1,250,000</p>
+            <p className="text-2xl font-display font-bold">₦{stats.releasedThisMonth.toLocaleString()}</p>
           </div>
 
           <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
@@ -129,7 +187,7 @@ const ClientDashboard = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">Active Disputes</p>
-            <p className="text-2xl font-display font-bold">1</p>
+            <p className="text-2xl font-display font-bold">{stats.activeDisputes}</p>
           </div>
         </div>
 
@@ -147,10 +205,12 @@ const ClientDashboard = () => {
                 <ArrowUpRight className="w-5 h-5 text-primary" />
                 Withdraw Funds
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <FileText className="w-5 h-5 text-secondary" />
-                View All Escrows
-              </Button>
+              <Link to="/dashboard/escrows">
+                <Button variant="outline" className="w-full justify-start gap-3">
+                  <FileText className="w-5 h-5 text-secondary" />
+                  View All Escrows
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -162,28 +222,45 @@ const ClientDashboard = () => {
                 View all
               </Link>
             </div>
-            <div className="space-y-4">
-              {recentTransactions.map((tx) => (
-                <div 
-                  key={tx.id}
-                  className="flex items-center justify-between p-4 rounded-xl bg-background hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-primary" />
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground">No escrows yet</p>
+                <Link to="/dashboard/escrows/new">
+                  <Button variant="link" className="mt-2">
+                    Create your first escrow
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {transactions.map((tx) => (
+                  <Link 
+                    key={tx.id}
+                    to={`/dashboard/escrows/${tx.id}`}
+                    className="flex items-center justify-between p-4 rounded-xl bg-background hover:bg-accent/50 transition-colors block"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{tx.title}</p>
+                        <p className="text-sm text-muted-foreground">{tx.vendor_email || 'No vendor assigned'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{tx.title}</p>
-                      <p className="text-sm text-muted-foreground">{tx.vendor}</p>
+                    <div className="text-right">
+                      <p className="font-semibold">₦{Number(tx.amount).toLocaleString()}</p>
+                      {getStatusBadge(tx.status)}
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">₦{tx.amount.toLocaleString()}</p>
-                    {getStatusBadge(tx.status)}
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

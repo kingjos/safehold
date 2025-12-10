@@ -14,8 +14,10 @@ import {
   Shield,
   CheckCircle2
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const CreateEscrow = () => {
   const [step, setStep] = useState(1);
@@ -28,20 +30,60 @@ const CreateEscrow = () => {
     milestones: false
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [createdEscrowId, setCreatedEscrowId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create an escrow.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
+      const amount = parseFloat(formData.amount);
+      const platformFee = amount * 0.015;
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert({
+          client_id: user.id,
+          title: formData.title,
+          description: formData.description,
+          amount: amount,
+          platform_fee: platformFee,
+          vendor_email: formData.vendorEmail,
+          due_date: formData.deadline ? new Date(formData.deadline).toISOString() : null,
+          status: 'pending_funding'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCreatedEscrowId(data.id);
       toast({
         title: "Escrow created successfully!",
         description: "The vendor has been notified about the secured payment.",
       });
-      setIsLoading(false);
       setStep(4);
-    }, 2000);
+    } catch (error: any) {
+      toast({
+        title: "Error creating escrow",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -259,7 +301,7 @@ const CreateEscrow = () => {
               
               <div className="p-4 rounded-xl bg-muted mb-6 text-left">
                 <p className="text-sm text-muted-foreground mb-1">Escrow ID</p>
-                <p className="font-mono font-semibold">ESC-2024-0156</p>
+                <p className="font-mono font-semibold text-sm break-all">{createdEscrowId || 'N/A'}</p>
               </div>
 
               <div className="flex gap-3">
