@@ -14,11 +14,13 @@ import ClientWallet from "./pages/dashboard/ClientWallet";
 import ClientSettings from "./pages/dashboard/ClientSettings";
 import ClientNotifications from "./pages/dashboard/ClientNotifications";
 import ClientDisputes from "./pages/dashboard/ClientDisputes";
+import ClientEscrows from "./pages/dashboard/ClientEscrows";
 import VendorDashboard from "./pages/dashboard/VendorDashboard";
 import VendorWallet from "./pages/dashboard/VendorWallet";
 import VendorSettings from "./pages/dashboard/VendorSettings";
 import VendorNotifications from "./pages/dashboard/VendorNotifications";
 import VendorDisputes from "./pages/dashboard/VendorDisputes";
+import VendorEscrows from "./pages/dashboard/VendorEscrows";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import AdminSettings from "./pages/dashboard/AdminSettings";
 import AdminDisputes from "./pages/dashboard/AdminDisputes";
@@ -66,6 +68,11 @@ const App = () => (
                   <ClientDisputes />
                 </ProtectedRoute>
               } />
+              <Route path="/dashboard/escrows" element={
+                <ProtectedRoute>
+                  <ClientEscrows />
+                </ProtectedRoute>
+              } />
               <Route path="/dashboard/disputes/:id" element={
                 <ProtectedRoute>
                   <DisputeDetail userType="client" />
@@ -109,6 +116,11 @@ const App = () => (
               <Route path="/vendor/disputes" element={
                 <ProtectedRoute requiredRole="vendor">
                   <VendorDisputes />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendor/escrows" element={
+                <ProtectedRoute requiredRole="vendor">
+                  <VendorEscrows />
                 </ProtectedRoute>
               } />
               <Route path="/vendor/disputes/:id" element={
