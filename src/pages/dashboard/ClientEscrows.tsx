@@ -9,6 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 import { 
   Plus, 
   Search, 
@@ -23,6 +32,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Tables } from "@/integrations/supabase/types";
 
 type Transaction = Tables<'transactions'>;
+
+const ITEMS_PER_PAGE = 10;
 
 const statusOptions = [
   { value: "all", label: "All Status" },
@@ -71,6 +82,7 @@ const ClientEscrows = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (user) {
@@ -80,6 +92,7 @@ const ClientEscrows = () => {
 
   useEffect(() => {
     filterTransactions();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [transactions, searchQuery, statusFilter]);
 
   const fetchTransactions = async () => {
@@ -102,7 +115,6 @@ const ClientEscrows = () => {
   const filterTransactions = () => {
     let filtered = [...transactions];
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(tx => 
@@ -113,7 +125,6 @@ const ClientEscrows = () => {
       );
     }
 
-    // Apply status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(tx => tx.status === statusFilter);
     }
@@ -127,6 +138,27 @@ const ClientEscrows = () => {
       month: "short",
       year: "numeric"
     });
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('ellipsis');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push('ellipsis');
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
@@ -226,39 +258,83 @@ const ClientEscrows = () => {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {filteredTransactions.map((tx) => (
-                <Link
-                  key={tx.id}
-                  to={`/dashboard/transactions/${tx.id}`}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 hover:bg-accent/50 transition-colors gap-4"
-                >
-                  <div className="flex items-start sm:items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <FileText className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{tx.title}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {tx.vendor_email || 'No vendor assigned'}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 sm:hidden">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(tx.created_at)}
+            <>
+              <div className="divide-y divide-border">
+                {paginatedTransactions.map((tx) => (
+                  <Link
+                    key={tx.id}
+                    to={`/dashboard/transactions/${tx.id}`}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 hover:bg-accent/50 transition-colors gap-4"
+                  >
+                    <div className="flex items-start sm:items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileText className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{tx.title}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {tx.vendor_email || 'No vendor assigned'}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 sm:hidden">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(tx.created_at)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
-                    <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(tx.created_at)}
+                    <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
+                      <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        {formatDate(tx.created_at)}
+                      </div>
+                      <p className="font-semibold text-lg">₦{Number(tx.amount).toLocaleString()}</p>
+                      {getStatusBadge(tx.status)}
                     </div>
-                    <p className="font-semibold text-lg">₦{Number(tx.amount).toLocaleString()}</p>
-                    {getStatusBadge(tx.status)}
+                  </Link>
+                ))}
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="p-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, filteredTransactions.length)} of {filteredTransactions.length}
+                    </p>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        {getPageNumbers().map((page, i) => (
+                          <PaginationItem key={i}>
+                            {page === 'ellipsis' ? (
+                              <PaginationEllipsis />
+                            ) : (
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            )}
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
