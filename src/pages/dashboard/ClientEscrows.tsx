@@ -33,7 +33,8 @@ import {
   Filter,
   Calendar,
   CalendarIcon,
-  X
+  X,
+  ArrowUpDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -55,6 +56,25 @@ const statusOptions = [
   { value: "disputed", label: "Disputed" },
   { value: "cancelled", label: "Cancelled" },
   { value: "refunded", label: "Refunded" },
+];
+
+const sortOptions = [
+  { value: "date_desc", label: "Newest First" },
+  { value: "date_asc", label: "Oldest First" },
+  { value: "amount_desc", label: "Highest Amount" },
+  { value: "amount_asc", label: "Lowest Amount" },
+  { value: "status", label: "Status" },
+];
+
+const statusOrder = [
+  "disputed",
+  "pending_release", 
+  "in_progress",
+  "funded",
+  "pending_funding",
+  "completed",
+  "cancelled",
+  "refunded"
 ];
 
 const getStatusBadge = (status: string) => {
@@ -92,6 +112,7 @@ const ClientEscrows = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -103,9 +124,9 @@ const ClientEscrows = () => {
   }, [user]);
 
   useEffect(() => {
-    filterTransactions();
+    filterAndSortTransactions();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [transactions, searchQuery, statusFilter, startDate, endDate]);
+  }, [transactions, searchQuery, statusFilter, sortBy, startDate, endDate]);
 
   const fetchTransactions = async () => {
     try {
@@ -124,7 +145,7 @@ const ClientEscrows = () => {
     }
   };
 
-  const filterTransactions = () => {
+  const filterAndSortTransactions = () => {
     let filtered = [...transactions];
 
     if (searchQuery.trim()) {
@@ -155,6 +176,24 @@ const ClientEscrows = () => {
         return isBefore(txDate, endOfDay(endDate)) || txDate.toDateString() === endDate.toDateString();
       });
     }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "date_desc":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "date_asc":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "amount_desc":
+          return Number(b.amount) - Number(a.amount);
+        case "amount_asc":
+          return Number(a.amount) - Number(b.amount);
+        case "status":
+          return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+        default:
+          return 0;
+      }
+    });
 
     setFilteredTransactions(filtered);
   };
@@ -229,6 +268,19 @@ const ClientEscrows = () => {
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
