@@ -3,6 +3,7 @@ import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -34,13 +35,15 @@ import {
   Calendar,
   CalendarIcon,
   X,
-  ArrowUpDown
+  ArrowUpDown,
+  Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Tables } from "@/integrations/supabase/types";
+import { toast } from "@/hooks/use-toast";
 
 type Transaction = Tables<'transactions'>;
 
@@ -116,6 +119,8 @@ const ClientEscrows = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -209,6 +214,77 @@ const ClientEscrows = () => {
       month: "short",
       year: "numeric"
     });
+  };
+
+  // Bulk selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedTransactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedTransactions.map(tx => tx.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Get cancellable transactions from selection
+  const getCancellableSelected = () => {
+    return paginatedTransactions.filter(
+      tx => selectedIds.has(tx.id) && tx.status === 'pending_funding'
+    );
+  };
+
+  const handleBulkCancel = async () => {
+    const cancellable = getCancellableSelected();
+    if (cancellable.length === 0) {
+      toast({
+        title: "No eligible escrows",
+        description: "Only pending funding escrows can be cancelled.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ status: 'cancelled' })
+        .in('id', cancellable.map(tx => tx.id));
+
+      if (error) throw error;
+
+      toast({
+        title: "Escrows cancelled",
+        description: `Successfully cancelled ${cancellable.length} escrow(s).`
+      });
+
+      clearSelection();
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error cancelling escrows:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel escrows. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setBulkActionLoading(false);
+    }
   };
 
   // Pagination calculations
@@ -374,6 +450,36 @@ const ClientEscrows = () => {
           </div>
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between p-4 rounded-xl bg-primary/10 border border-primary/20">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">
+                {selectedIds.size} escrow{selectedIds.size > 1 ? 's' : ''} selected
+              </span>
+              <Button variant="ghost" size="sm" onClick={clearSelection}>
+                <X className="w-4 h-4 mr-1" />
+                Clear
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleBulkCancel}
+                disabled={bulkActionLoading || getCancellableSelected().length === 0}
+              >
+                {bulkActionLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Cancel ({getCancellableSelected().length})
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Transactions List */}
         <div className="rounded-2xl bg-card border border-border shadow-soft overflow-hidden">
           {loading ? (
@@ -403,37 +509,63 @@ const ClientEscrows = () => {
             </div>
           ) : (
             <>
+              {/* Select All Header */}
+              <div className="flex items-center gap-4 p-4 border-b border-border bg-muted/30">
+                <Checkbox
+                  checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                />
+                <span className="text-sm text-muted-foreground">
+                  Select all on this page
+                </span>
+              </div>
+
               <div className="divide-y divide-border">
                 {paginatedTransactions.map((tx) => (
-                  <Link
+                  <div
                     key={tx.id}
-                    to={`/dashboard/transactions/${tx.id}`}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 hover:bg-accent/50 transition-colors gap-4"
+                    className={cn(
+                      "flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 hover:bg-accent/50 transition-colors gap-4",
+                      selectedIds.has(tx.id) && "bg-primary/5"
+                    )}
                   >
                     <div className="flex items-start sm:items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileText className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{tx.title}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {tx.vendor_email || 'No vendor assigned'}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 sm:hidden">
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(tx.created_at)}
+                      <Checkbox
+                        checked={selectedIds.has(tx.id)}
+                        onCheckedChange={() => toggleSelect(tx.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Link
+                        to={`/dashboard/transactions/${tx.id}`}
+                        className="flex items-start sm:items-center gap-4 flex-1 min-w-0"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <FileText className="w-6 h-6 text-primary" />
                         </div>
-                      </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{tx.title}</p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {tx.vendor_email || 'No vendor assigned'}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 sm:hidden">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(tx.created_at)}
+                          </div>
+                        </div>
+                      </Link>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
+                    <Link
+                      to={`/dashboard/transactions/${tx.id}`}
+                      className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6"
+                    >
                       <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         {formatDate(tx.created_at)}
                       </div>
                       <p className="font-semibold text-lg">₦{Number(tx.amount).toLocaleString()}</p>
                       {getStatusBadge(tx.status)}
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))}
               </div>
               
