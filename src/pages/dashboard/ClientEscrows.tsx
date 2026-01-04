@@ -25,6 +25,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { 
   Plus, 
@@ -36,7 +42,10 @@ import {
   CalendarIcon,
   X,
   ArrowUpDown,
-  Trash2
+  Trash2,
+  Download,
+  FileSpreadsheet,
+  File
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -44,6 +53,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
+import { useExportEscrows } from "@/hooks/useExportEscrows";
 
 type Transaction = Tables<'transactions'>;
 
@@ -110,6 +120,7 @@ const getStatusBadge = (status: string) => {
 
 const ClientEscrows = () => {
   const { user } = useAuth();
+  const { exportToCSV, exportToPDF } = useExportEscrows();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,12 +328,32 @@ const ClientEscrows = () => {
             <h1 className="text-2xl md:text-3xl font-display font-bold">My Escrows</h1>
             <p className="text-muted-foreground">Manage all your escrow transactions</p>
           </div>
-          <Link to="/dashboard/escrows/new">
-            <Button variant="default" size="lg">
-              <Plus className="w-5 h-5" />
-              Create Escrow
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="lg">
+                  <Download className="w-5 h-5" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportToCSV(filteredTransactions, "client_escrows")}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToPDF(filteredTransactions, "client_escrows", "My Escrows Report")}>
+                  <File className="w-4 h-4 mr-2" />
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Link to="/dashboard/escrows/new">
+              <Button variant="default" size="lg">
+                <Plus className="w-5 h-5" />
+                Create Escrow
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}

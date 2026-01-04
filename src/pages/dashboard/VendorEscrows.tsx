@@ -25,6 +25,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { 
   Search, 
@@ -36,7 +42,10 @@ import {
   X,
   Briefcase,
   ArrowUpDown,
-  CheckCircle
+  CheckCircle,
+  Download,
+  FileSpreadsheet,
+  File
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -44,6 +53,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
+import { useExportEscrows } from "@/hooks/useExportEscrows";
 
 type Transaction = Tables<'transactions'>;
 
@@ -110,6 +120,7 @@ const getStatusBadge = (status: string) => {
 
 const VendorEscrows = () => {
   const { user } = useAuth();
+  const { exportToCSV, exportToPDF } = useExportEscrows();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -321,6 +332,24 @@ const VendorEscrows = () => {
             <h1 className="text-2xl md:text-3xl font-display font-bold">My Jobs</h1>
             <p className="text-muted-foreground">View and manage your assigned escrow jobs</p>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="lg">
+                <Download className="w-5 h-5" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportToCSV(filteredTransactions, "vendor_jobs")}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToPDF(filteredTransactions, "vendor_jobs", "My Jobs Report")}>
+                <File className="w-4 h-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Filters */}
