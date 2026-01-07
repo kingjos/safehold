@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
+import { Building2, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useWallet } from "@/hooks/useWallet";
 
 interface WithdrawModalProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface WithdrawModalProps {
   availableBalance: number;
 }
 
+// In a real app, this would come from the user's saved bank accounts in the database
 const savedBanks = [
   { id: "1", bank: "GTBank", accountNumber: "0123456789", accountName: "John Doe" },
   { id: "2", bank: "Access Bank", accountNumber: "9876543210", accountName: "John Doe" },
@@ -22,11 +24,13 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
   const [step, setStep] = useState<"form" | "confirm" | "processing" | "success">("form");
   const [amount, setAmount] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { withdrawWallet } = useWallet();
 
   const selectedBankDetails = savedBanks.find(b => b.id === selectedBank);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (step === "form") {
       const numAmount = parseFloat(amount);
       if (!amount || numAmount < 1000) {
@@ -37,10 +41,11 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
         });
         return;
       }
-      if (numAmount > availableBalance) {
+      const fee = 50;
+      if (numAmount + fee > availableBalance) {
         toast({
           title: "Insufficient balance",
-          description: "You don't have enough funds for this withdrawal",
+          description: "You don't have enough funds for this withdrawal (including ₦50 fee)",
           variant: "destructive",
         });
         return;
@@ -56,9 +61,26 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
       setStep("confirm");
     } else if (step === "confirm") {
       setStep("processing");
-      setTimeout(() => {
+      setIsLoading(true);
+
+      const bankDetails = selectedBankDetails 
+        ? `${selectedBankDetails.bank} - ${selectedBankDetails.accountNumber}` 
+        : undefined;
+      
+      const result = await withdrawWallet(parseFloat(amount), bankDetails);
+      
+      setIsLoading(false);
+      
+      if (result.success) {
         setStep("success");
-      }, 2000);
+      } else {
+        toast({
+          title: "Withdrawal failed",
+          description: result.error || "Unable to process withdrawal. Please try again.",
+          variant: "destructive",
+        });
+        setStep("confirm");
+      }
     }
   };
 
@@ -66,6 +88,7 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
     setStep("form");
     setAmount("");
     setSelectedBank("");
+    setIsLoading(false);
     onOpenChange(false);
   };
 
@@ -104,13 +127,15 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
                   className="pl-8 text-lg font-semibold"
                 />
               </div>
-              <button
-                type="button"
-                className="text-sm text-primary hover:underline"
-                onClick={() => setAmount(String(availableBalance - fee))}
-              >
-                Withdraw all (₦{(availableBalance - fee).toLocaleString()})
-              </button>
+              {availableBalance > fee && (
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline"
+                  onClick={() => setAmount(String(availableBalance - fee))}
+                >
+                  Withdraw all (₦{(availableBalance - fee).toLocaleString()})
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -184,8 +209,8 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
               <Button variant="outline" className="flex-1" onClick={() => setStep("form")}>
                 Back
               </Button>
-              <Button className="flex-1" onClick={handleContinue}>
-                Confirm Withdrawal
+              <Button className="flex-1" onClick={handleContinue} disabled={isLoading}>
+                {isLoading ? "Processing..." : "Confirm Withdrawal"}
               </Button>
             </div>
           </div>
@@ -193,8 +218,8 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
 
         {step === "processing" && (
           <div className="py-12 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-              <Building2 className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
             <div>
               <p className="font-medium">Processing withdrawal...</p>
