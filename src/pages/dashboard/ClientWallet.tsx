@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WalletCard } from "@/components/wallet/WalletCard";
-import { TransactionList, Transaction } from "@/components/wallet/TransactionList";
+import { TransactionList } from "@/components/wallet/TransactionList";
 import { FundWalletModal } from "@/components/wallet/FundWalletModal";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { Button } from "@/components/ui/button";
@@ -12,76 +12,19 @@ import {
   TrendingUp, 
   TrendingDown,
   Filter,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
-
-const mockTransactions: Transaction[] = [
-  {
-    id: "TXN-001",
-    type: "deposit",
-    description: "Wallet Funding",
-    amount: 500000,
-    status: "completed",
-    date: "2024-01-15",
-    reference: "PAY-ABC123"
-  },
-  {
-    id: "TXN-002",
-    type: "escrow_fund",
-    description: "Escrow: Website Development",
-    amount: 350000,
-    status: "completed",
-    date: "2024-01-14",
-    reference: "ESC-001"
-  },
-  {
-    id: "TXN-003",
-    type: "deposit",
-    description: "Wallet Funding",
-    amount: 100000,
-    status: "completed",
-    date: "2024-01-12",
-    reference: "PAY-DEF456"
-  },
-  {
-    id: "TXN-004",
-    type: "escrow_fund",
-    description: "Escrow: Logo Design",
-    amount: 75000,
-    status: "completed",
-    date: "2024-01-10",
-    reference: "ESC-002"
-  },
-  {
-    id: "TXN-005",
-    type: "withdrawal",
-    description: "Bank Withdrawal",
-    amount: 200000,
-    status: "pending",
-    date: "2024-01-08",
-    reference: "WTH-789"
-  },
-  {
-    id: "TXN-006",
-    type: "deposit",
-    description: "Wallet Funding",
-    amount: 250000,
-    status: "completed",
-    date: "2024-01-05",
-    reference: "PAY-GHI789"
-  }
-];
+import { useWallet } from "@/hooks/useWallet";
 
 const ClientWallet = () => {
   const [fundModalOpen, setFundModalOpen] = useState(false);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
-  const walletBalance = 2450000;
+  
+  const { balance, transactions, deposits, outflows, loading, transactionsLoading } = useWallet();
 
-  const deposits = mockTransactions.filter(t => t.type === "deposit" || t.type === "escrow_release");
-  const outflows = mockTransactions.filter(t => t.type === "withdrawal" || t.type === "escrow_fund");
-
-  const totalDeposits = deposits.reduce((sum, t) => sum + t.amount, 0);
-  const totalOutflows = outflows.reduce((sum, t) => sum + t.amount, 0);
+  const totalDeposits = deposits.reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalOutflows = outflows.reduce((sum, t) => sum + Number(t.amount), 0);
 
   return (
     <DashboardLayout userType="client">
@@ -93,7 +36,7 @@ const ClientWallet = () => {
             <p className="text-muted-foreground">Manage your funds and transactions</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setWithdrawModalOpen(true)}>
+            <Button variant="outline" onClick={() => setWithdrawModalOpen(true)} disabled={balance <= 50}>
               <ArrowUpRight className="w-4 h-4 mr-2" />
               Withdraw
             </Button>
@@ -107,7 +50,13 @@ const ClientWallet = () => {
         {/* Wallet Card & Stats */}
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <WalletCard balance={walletBalance} />
+            {loading ? (
+              <div className="h-48 rounded-2xl bg-card border border-border flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <WalletCard balance={balance} />
+            )}
           </div>
           <div className="space-y-4">
             <div className="p-5 rounded-2xl bg-card border border-border shadow-soft">
@@ -120,7 +69,7 @@ const ClientWallet = () => {
                   <p className="font-display font-bold text-lg">₦{totalDeposits.toLocaleString()}</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">This month</p>
+              <p className="text-xs text-muted-foreground">All time</p>
             </div>
             <div className="p-5 rounded-2xl bg-card border border-border shadow-soft">
               <div className="flex items-center gap-3 mb-3">
@@ -132,7 +81,7 @@ const ClientWallet = () => {
                   <p className="font-display font-bold text-lg">₦{totalOutflows.toLocaleString()}</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">This month</p>
+              <p className="text-xs text-muted-foreground">All time</p>
             </div>
           </div>
         </div>
@@ -153,22 +102,28 @@ const ClientWallet = () => {
             </div>
           </div>
           <div className="p-6">
-            <Tabs defaultValue="all">
-              <TabsList className="mb-6">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="deposits">Deposits</TabsTrigger>
-                <TabsTrigger value="outflows">Outflows</TabsTrigger>
-              </TabsList>
-              <TabsContent value="all">
-                <TransactionList transactions={mockTransactions} />
-              </TabsContent>
-              <TabsContent value="deposits">
-                <TransactionList transactions={deposits} />
-              </TabsContent>
-              <TabsContent value="outflows">
-                <TransactionList transactions={outflows} />
-              </TabsContent>
-            </Tabs>
+            {transactionsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Tabs defaultValue="all">
+                <TabsList className="mb-6">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="deposits">Deposits</TabsTrigger>
+                  <TabsTrigger value="outflows">Outflows</TabsTrigger>
+                </TabsList>
+                <TabsContent value="all">
+                  <TransactionList transactions={transactions} />
+                </TabsContent>
+                <TabsContent value="deposits">
+                  <TransactionList transactions={deposits} />
+                </TabsContent>
+                <TabsContent value="outflows">
+                  <TransactionList transactions={outflows} />
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
         </div>
       </div>
@@ -177,7 +132,7 @@ const ClientWallet = () => {
       <WithdrawModal 
         open={withdrawModalOpen} 
         onOpenChange={setWithdrawModalOpen} 
-        availableBalance={walletBalance}
+        availableBalance={balance}
       />
     </DashboardLayout>
   );

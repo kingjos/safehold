@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Building2, Smartphone, ArrowRight, CheckCircle } from "lucide-react";
+import { CreditCard, Building2, Smartphone, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useWallet } from "@/hooks/useWallet";
 
 interface FundWalletModalProps {
   open: boolean;
@@ -23,9 +24,11 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
   const [step, setStep] = useState<"amount" | "method" | "processing" | "success">("amount");
   const [amount, setAmount] = useState("");
   const [selectedMethod, setSelectedMethod] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { fundWallet } = useWallet();
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (step === "amount") {
       if (!amount || parseFloat(amount) < 100) {
         toast({
@@ -45,11 +48,29 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
         });
         return;
       }
+      
       setStep("processing");
-      // Simulate payment processing
-      setTimeout(() => {
+      setIsLoading(true);
+      
+      // Generate a reference for this transaction
+      const reference = `DEP-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+      
+      // In a real implementation, this would integrate with a payment gateway
+      // For now, we simulate payment processing and directly fund the wallet
+      const result = await fundWallet(parseFloat(amount), reference);
+      
+      setIsLoading(false);
+      
+      if (result.success) {
         setStep("success");
-      }, 2000);
+      } else {
+        toast({
+          title: "Payment failed",
+          description: result.error || "Unable to process payment. Please try again.",
+          variant: "destructive",
+        });
+        setStep("method");
+      }
     }
   };
 
@@ -57,6 +78,7 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
     setStep("amount");
     setAmount("");
     setSelectedMethod("");
+    setIsLoading(false);
     onOpenChange(false);
   };
 
@@ -157,8 +179,8 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
 
         {step === "processing" && (
           <div className="py-12 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-              <CreditCard className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
             <div>
               <p className="font-medium">Processing your payment...</p>

@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useWallet } from "@/hooks/useWallet";
 import { Tables } from "@/integrations/supabase/types";
 
 type Transaction = Tables<'transactions'>;
@@ -50,6 +51,7 @@ const getStatusBadge = (status: string) => {
 
 const ClientDashboard = () => {
   const { user, profile } = useAuth();
+  const { balance: walletBalance, loading: walletLoading } = useWallet();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -157,7 +159,9 @@ const ClientDashboard = () => {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">Wallet Balance</p>
-            <p className="text-2xl font-display font-bold">₦2,450,000</p>
+            <p className="text-2xl font-display font-bold">
+              {walletLoading ? "..." : `₦${walletBalance.toLocaleString()}`}
+            </p>
           </div>
 
           <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
