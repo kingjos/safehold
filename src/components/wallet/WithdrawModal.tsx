@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Building2, ArrowRight, CheckCircle, AlertCircle, Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/useWallet";
+import { useBankAccounts, BankAccount } from "@/hooks/useBankAccounts";
+import { Link } from "react-router-dom";
 
 interface WithdrawModalProps {
   open: boolean;
@@ -14,21 +16,24 @@ interface WithdrawModalProps {
   availableBalance: number;
 }
 
-// In a real app, this would come from the user's saved bank accounts in the database
-const savedBanks = [
-  { id: "1", bank: "GTBank", accountNumber: "0123456789", accountName: "John Doe" },
-  { id: "2", bank: "Access Bank", accountNumber: "9876543210", accountName: "John Doe" },
-];
-
 export const WithdrawModal = ({ open, onOpenChange, availableBalance }: WithdrawModalProps) => {
   const [step, setStep] = useState<"form" | "confirm" | "processing" | "success">("form");
   const [amount, setAmount] = useState("");
-  const [selectedBank, setSelectedBank] = useState("");
+  const [selectedBankId, setSelectedBankId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { withdrawWallet } = useWallet();
+  const { accounts, loading: accountsLoading } = useBankAccounts();
 
-  const selectedBankDetails = savedBanks.find(b => b.id === selectedBank);
+  // Auto-select default bank account when accounts load
+  useEffect(() => {
+    if (accounts.length > 0 && !selectedBankId) {
+      const defaultAccount = accounts.find(a => a.is_default) || accounts[0];
+      setSelectedBankId(defaultAccount.id);
+    }
+  }, [accounts, selectedBankId]);
+
+  const selectedBankDetails = accounts.find(b => b.id === selectedBankId);
 
   const handleContinue = async () => {
     if (step === "form") {
@@ -50,7 +55,7 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
         });
         return;
       }
-      if (!selectedBank) {
+      if (!selectedBankId) {
         toast({
           title: "Select bank account",
           description: "Please select a bank account to withdraw to",
@@ -64,7 +69,7 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
       setIsLoading(true);
 
       const bankDetails = selectedBankDetails 
-        ? `${selectedBankDetails.bank} - ${selectedBankDetails.accountNumber}` 
+        ? `${selectedBankDetails.bank_name} - ${selectedBankDetails.account_number} - ${selectedBankDetails.account_name}` 
         : undefined;
       
       const result = await withdrawWallet(parseFloat(amount), bankDetails);
@@ -87,7 +92,7 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
   const handleClose = () => {
     setStep("form");
     setAmount("");
-    setSelectedBank("");
+    setSelectedBankId(accounts.find(a => a.is_default)?.id || accounts[0]?.id || "");
     setIsLoading(false);
     onOpenChange(false);
   };
@@ -140,24 +145,48 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
 
             <div className="space-y-2">
               <Label>Select Bank Account</Label>
-              <Select value={selectedBank} onValueChange={setSelectedBank}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a saved bank account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {savedBanks.map((bank) => (
-                    <SelectItem key={bank.id} value={bank.id}>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        <span>{bank.bank} - {bank.accountNumber}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {accountsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : accounts.length === 0 ? (
+                <div className="p-4 rounded-lg border border-dashed border-border text-center">
+                  <Building2 className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">No bank accounts saved</p>
+                  <Link to="/dashboard/settings" onClick={() => onOpenChange(false)}>
+                    <Button variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Bank Account
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <Select value={selectedBankId} onValueChange={setSelectedBankId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a bank account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((bank) => (
+                      <SelectItem key={bank.id} value={bank.id}>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          <span>{bank.bank_name} - {bank.account_number}</span>
+                          {bank.is_default && (
+                            <span className="text-xs text-primary">(Default)</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
-            <Button className="w-full" onClick={handleContinue}>
+            <Button 
+              className="w-full" 
+              onClick={handleContinue}
+              disabled={accounts.length === 0}
+            >
               Continue
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -189,9 +218,9 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
                     <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-medium">{selectedBankDetails.bank}</p>
+                    <p className="font-medium">{selectedBankDetails.bank_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {selectedBankDetails.accountNumber} - {selectedBankDetails.accountName}
+                      {selectedBankDetails.account_number} - {selectedBankDetails.account_name}
                     </p>
                   </div>
                 </div>
