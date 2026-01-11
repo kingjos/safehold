@@ -415,6 +415,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fund_escrow_from_wallet: {
+        Args: { p_escrow_id: string }
+        Returns: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string
+          escrow_id: string | null
+          id: string
+          reference: string | null
+          status: string
+          type: string
+          user_id: string
+          wallet_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wallet_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fund_wallet: {
         Args: { p_amount: number; p_reference?: string }
         Returns: {
@@ -452,6 +474,28 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      release_escrow_funds: {
+        Args: { p_escrow_id: string }
+        Returns: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string
+          escrow_id: string | null
+          id: string
+          reference: string | null
+          status: string
+          type: string
+          user_id: string
+          wallet_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wallet_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       withdraw_wallet: {
         Args: { p_amount: number; p_bank_details?: string }

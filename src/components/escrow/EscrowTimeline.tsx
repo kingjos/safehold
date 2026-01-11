@@ -1,8 +1,8 @@
-import { Check, Clock, AlertCircle, DollarSign, FileText, User, Shield } from "lucide-react";
+import { Check, Clock, AlertCircle, DollarSign, FileText, User, Shield, Play, Send } from "lucide-react";
 
 interface TimelineEvent {
   id: string;
-  type: "created" | "funded" | "in_progress" | "completed" | "released" | "disputed" | "cancelled";
+  type: string;
   title: string;
   description: string;
   timestamp: string;
@@ -13,20 +13,22 @@ interface EscrowTimelineProps {
   events: TimelineEvent[];
 }
 
-const getEventIcon = (type: TimelineEvent["type"]) => {
+const getEventIcon = (type: string) => {
   switch (type) {
     case "created":
       return <FileText className="h-4 w-4" />;
     case "funded":
       return <DollarSign className="h-4 w-4" />;
+    case "started":
     case "in_progress":
-      return <Clock className="h-4 w-4" />;
+      return <Play className="h-4 w-4" />;
+    case "pending_release":
+      return <Send className="h-4 w-4" />;
     case "completed":
       return <Check className="h-4 w-4" />;
     case "released":
       return <Shield className="h-4 w-4" />;
     case "disputed":
-      return <AlertCircle className="h-4 w-4" />;
     case "cancelled":
       return <AlertCircle className="h-4 w-4" />;
     default:
@@ -34,20 +36,21 @@ const getEventIcon = (type: TimelineEvent["type"]) => {
   }
 };
 
-const getEventColor = (type: TimelineEvent["type"]) => {
+const getEventColor = (type: string) => {
   switch (type) {
     case "created":
       return "bg-muted text-muted-foreground";
     case "funded":
       return "bg-primary text-primary-foreground";
+    case "started":
     case "in_progress":
       return "bg-secondary text-secondary-foreground";
+    case "pending_release":
+      return "bg-accent text-accent-foreground";
     case "completed":
-      return "bg-success text-success-foreground";
     case "released":
       return "bg-success text-success-foreground";
     case "disputed":
-      return "bg-destructive text-destructive-foreground";
     case "cancelled":
       return "bg-destructive text-destructive-foreground";
     default:
