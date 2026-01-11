@@ -69,6 +69,14 @@ const CreateEscrow = () => {
 
       if (error) throw error;
 
+      // Create transaction event for escrow creation
+      await supabase.from('transaction_events').insert({
+        transaction_id: data.id,
+        user_id: user.id,
+        event_type: 'created',
+        description: 'Escrow transaction created'
+      });
+
       setCreatedEscrowId(data.id);
       toast({
         title: "Escrow created successfully!",
