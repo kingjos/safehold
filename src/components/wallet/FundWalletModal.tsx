@@ -1,83 +1,113 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Building2, Smartphone, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
+import { CreditCard, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useWallet } from "@/hooks/useWallet";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FundWalletModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const paymentMethods = [
-  { id: "card", label: "Debit Card", icon: CreditCard, description: "Visa, Mastercard, Verve" },
-  { id: "bank", label: "Bank Transfer", icon: Building2, description: "Direct bank transfer" },
-  { id: "ussd", label: "USSD", icon: Smartphone, description: "Pay with USSD code" },
-];
-
 const quickAmounts = [5000, 10000, 25000, 50000, 100000, 250000];
 
 export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) => {
-  const [step, setStep] = useState<"amount" | "method" | "processing" | "success">("amount");
+  const [step, setStep] = useState<"amount" | "processing" | "success">("amount");
   const [amount, setAmount] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const { fundWallet } = useWallet();
 
-  const handleContinue = async () => {
-    if (step === "amount") {
-      if (!amount || parseFloat(amount) < 100) {
-        toast({
-          title: "Invalid amount",
-          description: "Minimum deposit amount is ₦100",
-          variant: "destructive",
-        });
-        return;
-      }
-      setStep("method");
-    } else if (step === "method") {
-      if (!selectedMethod) {
-        toast({
-          title: "Select payment method",
-          description: "Please select a payment method to continue",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setStep("processing");
-      setIsLoading(true);
-      
-      // Generate a reference for this transaction
-      const reference = `DEP-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-      
-      // In a real implementation, this would integrate with a payment gateway
-      // For now, we simulate payment processing and directly fund the wallet
-      const result = await fundWallet(parseFloat(amount), reference);
-      
-      setIsLoading(false);
-      
-      if (result.success) {
+  // Handle payment callback
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    const reference = searchParams.get("reference");
+    
+    if (paymentStatus === "success" && reference) {
+      verifyPayment(reference);
+      // Clean up URL params
+      searchParams.delete("payment");
+      searchParams.delete("reference");
+      searchParams.delete("trxref");
+      setSearchParams(searchParams);
+    }
+  }, [searchParams]);
+
+  const verifyPayment = async (reference: string) => {
+    setIsLoading(true);
+    setStep("processing");
+    onOpenChange(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("paystack-verify", {
+        body: { reference },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
         setStep("success");
-      } else {
         toast({
-          title: "Payment failed",
-          description: result.error || "Unable to process payment. Please try again.",
-          variant: "destructive",
+          title: "Payment successful",
+          description: `₦${data.amount?.toLocaleString()} has been added to your wallet`,
         });
-        setStep("method");
+      } else {
+        throw new Error(data.error || "Verification failed");
       }
+    } catch (error) {
+      toast({
+        title: "Verification failed",
+        description: error instanceof Error ? error.message : "Unable to verify payment",
+        variant: "destructive",
+      });
+      setStep("amount");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePayWithPaystack = async () => {
+    if (!amount || parseFloat(amount) < 100) {
+      toast({
+        title: "Invalid amount",
+        description: "Minimum deposit amount is ₦100",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("paystack-initialize", {
+        body: { amount: parseFloat(amount) },
+      });
+
+      if (error) throw error;
+
+      if (data.authorization_url) {
+        // Redirect to Paystack checkout
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error(data.error || "Failed to initialize payment");
+      }
+    } catch (error) {
+      toast({
+        title: "Payment failed",
+        description: error instanceof Error ? error.message : "Unable to initialize payment",
+        variant: "destructive",
+      });
+      setIsLoading(false);
     }
   };
 
   const handleClose = () => {
     setStep("amount");
     setAmount("");
-    setSelectedMethod("");
     setIsLoading(false);
     onOpenChange(false);
   };
@@ -88,8 +118,7 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
         <DialogHeader>
           <DialogTitle className="font-display">
             {step === "amount" && "Fund Your Wallet"}
-            {step === "method" && "Select Payment Method"}
-            {step === "processing" && "Processing Payment"}
+            {step === "processing" && "Verifying Payment"}
             {step === "success" && "Payment Successful"}
           </DialogTitle>
         </DialogHeader>
@@ -128,52 +157,33 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
               </div>
             </div>
 
-            <Button className="w-full" onClick={handleContinue}>
-              Continue
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <div className="p-4 rounded-lg bg-accent/50">
+              <div className="flex items-center gap-3 mb-2">
+                <CreditCard className="w-5 h-5 text-primary" />
+                <span className="font-medium">Pay with Paystack</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Secure payment via card, bank transfer, or USSD
+              </p>
+            </div>
+
+            <Button 
+              className="w-full" 
+              onClick={handlePayWithPaystack}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Initializing...
+                </>
+              ) : (
+                <>
+                  Pay with Paystack
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
             </Button>
-          </div>
-        )}
-
-        {step === "method" && (
-          <div className="space-y-6">
-            <div className="p-4 rounded-lg bg-accent/50 text-center">
-              <p className="text-sm text-muted-foreground">Amount to fund</p>
-              <p className="text-2xl font-display font-bold">₦{parseFloat(amount).toLocaleString()}</p>
-            </div>
-
-            <div className="space-y-3">
-              {paymentMethods.map((method) => (
-                <button
-                  key={method.id}
-                  onClick={() => setSelectedMethod(method.id)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                    selectedMethod === method.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                    selectedMethod === method.id ? "bg-primary text-primary-foreground" : "bg-accent"
-                  }`}>
-                    <method.icon className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">{method.label}</p>
-                    <p className="text-sm text-muted-foreground">{method.description}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("amount")}>
-                Back
-              </Button>
-              <Button className="flex-1" onClick={handleContinue}>
-                Pay Now
-              </Button>
-            </div>
           </div>
         )}
 
@@ -183,7 +193,7 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
             <div>
-              <p className="font-medium">Processing your payment...</p>
+              <p className="font-medium">Verifying your payment...</p>
               <p className="text-sm text-muted-foreground">Please wait while we confirm your transaction</p>
             </div>
           </div>
@@ -196,7 +206,7 @@ export const FundWalletModal = ({ open, onOpenChange }: FundWalletModalProps) =>
             </div>
             <div>
               <p className="text-xl font-display font-bold">Payment Successful!</p>
-              <p className="text-muted-foreground">₦{parseFloat(amount).toLocaleString()} has been added to your wallet</p>
+              <p className="text-muted-foreground">Your wallet has been funded</p>
             </div>
             <Button className="w-full" onClick={handleClose}>
               Done
