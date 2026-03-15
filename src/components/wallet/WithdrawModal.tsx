@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, ArrowRight, CheckCircle, AlertCircle, Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/useWallet";
-import { useBankAccounts, BankAccount } from "@/hooks/useBankAccounts";
+import { useBankAccounts } from "@/hooks/useBankAccounts";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 
 interface WithdrawModalProps {
