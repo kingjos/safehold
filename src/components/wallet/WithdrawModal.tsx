@@ -23,7 +23,7 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
   const [selectedBankId, setSelectedBankId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { withdrawWallet } = useWallet();
+  const { refetch } = useWallet();
   const { accounts, loading: accountsLoading } = useBankAccounts();
 
   // Auto-select default bank account when accounts load
