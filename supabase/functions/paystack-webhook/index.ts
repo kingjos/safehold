@@ -168,12 +168,6 @@ serve(async (req) => {
 
     console.log(`Processing wallet funding: User ${userId}, Amount ₦${amountInNaira}, Ref: ${reference}`);
 
-    // Use service role for database operations
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
     // Check if this reference was already processed
     const { data: existingTx } = await supabaseClient
       .from("wallet_transactions")
