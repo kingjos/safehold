@@ -23,6 +23,7 @@ export type Database = {
           id: string
           is_default: boolean
           is_verified: boolean
+          paystack_recipient_code: string | null
           updated_at: string
           user_id: string
         }
@@ -34,6 +35,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           is_verified?: boolean
+          paystack_recipient_code?: string | null
           updated_at?: string
           user_id: string
         }
@@ -45,6 +47,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           is_verified?: boolean
+          paystack_recipient_code?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -336,6 +339,7 @@ export type Database = {
           id: string
           reference: string | null
           status: string
+          transfer_reference: string | null
           type: string
           user_id: string
           wallet_id: string
@@ -349,6 +353,7 @@ export type Database = {
           id?: string
           reference?: string | null
           status?: string
+          transfer_reference?: string | null
           type: string
           user_id: string
           wallet_id: string
@@ -362,6 +367,7 @@ export type Database = {
           id?: string
           reference?: string | null
           status?: string
+          transfer_reference?: string | null
           type?: string
           user_id?: string
           wallet_id?: string
@@ -426,6 +432,7 @@ export type Database = {
           id: string
           reference: string | null
           status: string
+          transfer_reference: string | null
           type: string
           user_id: string
           wallet_id: string
@@ -448,6 +455,7 @@ export type Database = {
           id: string
           reference: string | null
           status: string
+          transfer_reference: string | null
           type: string
           user_id: string
           wallet_id: string
@@ -486,6 +494,7 @@ export type Database = {
           id: string
           reference: string | null
           status: string
+          transfer_reference: string | null
           type: string
           user_id: string
           wallet_id: string
@@ -508,6 +517,7 @@ export type Database = {
           id: string
           reference: string | null
           status: string
+          transfer_reference: string | null
           type: string
           user_id: string
           wallet_id: string

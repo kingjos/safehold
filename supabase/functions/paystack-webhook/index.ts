@@ -64,9 +64,81 @@ serve(async (req) => {
     const event = JSON.parse(body);
     console.log("Paystack webhook event:", event.event, "Reference:", event.data?.reference);
 
+    // Use service role for database operations
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // Handle transfer events
+    if (event.event === "transfer.success" || event.event === "transfer.failed" || event.event === "transfer.reversed") {
+      const transferData = event.data;
+      const reference = transferData.reference;
+      const transferStatus = event.event === "transfer.success" ? "completed" : "failed";
+
+      console.log(`Processing transfer event: ${event.event}, Ref: ${reference}`);
+
+      // Find the wallet transaction by reference
+      const { data: walletTx } = await supabaseClient
+        .from("wallet_transactions")
+        .select("*")
+        .eq("reference", reference)
+        .single();
+
+      if (!walletTx) {
+        console.log("No matching wallet transaction for transfer:", reference);
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update transaction status
+      await supabaseClient
+        .from("wallet_transactions")
+        .update({ status: transferStatus })
+        .eq("id", walletTx.id);
+
+      // If transfer failed/reversed, refund the wallet
+      if (transferStatus === "failed") {
+        const { data: wallet } = await supabaseClient
+          .from("wallets")
+          .select("*")
+          .eq("id", walletTx.wallet_id)
+          .single();
+
+        if (wallet) {
+          const restoredBalance = wallet.balance + walletTx.amount;
+          await supabaseClient
+            .from("wallets")
+            .update({ balance: restoredBalance })
+            .eq("id", wallet.id);
+
+          // Create refund notification
+          await supabaseClient.from("notifications").insert({
+            user_id: walletTx.user_id,
+            type: "wallet",
+            title: "Withdrawal Failed",
+            message: `Your withdrawal of ₦${(walletTx.amount - 50).toLocaleString()} failed. ₦${walletTx.amount.toLocaleString()} has been refunded to your wallet.`,
+          });
+        }
+      } else {
+        // Success notification
+        await supabaseClient.from("notifications").insert({
+          user_id: walletTx.user_id,
+          type: "wallet",
+          title: "Withdrawal Successful",
+          message: `Your withdrawal of ₦${(walletTx.amount - 50).toLocaleString()} has been sent to your bank account.`,
+        });
+      }
+
+      return new Response(JSON.stringify({ received: true, processed: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Only process successful charge events
     if (event.event !== "charge.success") {
-      console.log("Ignoring non-charge event:", event.event);
+      console.log("Ignoring event:", event.event);
       return new Response(JSON.stringify({ received: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -95,12 +167,6 @@ serve(async (req) => {
     }
 
     console.log(`Processing wallet funding: User ${userId}, Amount ₦${amountInNaira}, Ref: ${reference}`);
-
-    // Use service role for database operations
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
 
     // Check if this reference was already processed
     const { data: existingTx } = await supabaseClient
