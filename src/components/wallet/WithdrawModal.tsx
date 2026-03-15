@@ -69,23 +69,32 @@ export const WithdrawModal = ({ open, onOpenChange, availableBalance }: Withdraw
       setStep("processing");
       setIsLoading(true);
 
-      const bankDetails = selectedBankDetails 
-        ? `${selectedBankDetails.bank_name} - ${selectedBankDetails.account_number} - ${selectedBankDetails.account_name}` 
-        : undefined;
-      
-      const result = await withdrawWallet(parseFloat(amount), bankDetails);
-      
-      setIsLoading(false);
-      
-      if (result.success) {
-        setStep("success");
-      } else {
+      try {
+        const { data, error } = await supabase.functions.invoke("paystack-transfer", {
+          body: {
+            amount: parseFloat(amount),
+            bank_account_id: selectedBankId,
+          },
+        });
+
+        if (error) throw error;
+
+        if (data?.success) {
+          setStep("success");
+          // Refetch wallet to reflect new balance
+          refetch();
+        } else {
+          throw new Error(data?.error || "Transfer failed");
+        }
+      } catch (error: any) {
         toast({
           title: "Withdrawal failed",
-          description: result.error || "Unable to process withdrawal. Please try again.",
+          description: error.message || "Unable to process withdrawal. Please try again.",
           variant: "destructive",
         });
         setStep("confirm");
+      } finally {
+        setIsLoading(false);
       }
     }
   };
