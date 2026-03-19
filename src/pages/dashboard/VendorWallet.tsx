@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WalletCard } from "@/components/wallet/WalletCard";
 import { TransactionList } from "@/components/wallet/TransactionList";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
+import { WithdrawalTracker } from "@/components/wallet/WithdrawalTracker";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
