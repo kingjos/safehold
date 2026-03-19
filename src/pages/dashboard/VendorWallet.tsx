@@ -124,6 +124,9 @@ const VendorWallet = () => {
           </div>
         )}
 
+        {/* Withdrawal Status Tracker */}
+        <WithdrawalTracker />
+
         {/* Transaction History */}
         <div className="rounded-2xl bg-card border border-border shadow-soft">
           <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
