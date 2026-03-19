@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Clock, CheckCircle, XCircle, ArrowUpRight, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+
 
 interface Withdrawal {
   id: string;
@@ -41,6 +44,8 @@ export const WithdrawalTracker = () => {
   const { user } = useAuth();
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const previousStatusesRef = useRef<Record<string, string>>({});
 
   const fetchWithdrawals = async () => {
     if (!user) return;
@@ -52,7 +57,34 @@ export const WithdrawalTracker = () => {
       .order("created_at", { ascending: false })
       .limit(10);
 
-    setWithdrawals((data as Withdrawal[]) || []);
+    const newWithdrawals = (data as Withdrawal[]) || [];
+    
+    // Check for status changes and show toasts
+    const prevStatuses = previousStatusesRef.current;
+    for (const w of newWithdrawals) {
+      const prev = prevStatuses[w.id];
+      if (prev === "pending" && w.status === "completed") {
+        toast({
+          title: "Withdrawal Successful ✅",
+          description: `₦${Number(w.amount).toLocaleString()} has been sent to your bank account.`,
+        });
+      } else if (prev === "pending" && w.status === "failed") {
+        toast({
+          title: "Withdrawal Failed",
+          description: `₦${Number(w.amount).toLocaleString()} withdrawal failed. Funds have been refunded to your wallet.`,
+          variant: "destructive",
+        });
+      }
+    }
+
+    // Update previous statuses ref
+    const newStatuses: Record<string, string> = {};
+    for (const w of newWithdrawals) {
+      newStatuses[w.id] = w.status;
+    }
+    previousStatusesRef.current = newStatuses;
+
+    setWithdrawals(newWithdrawals);
     setLoading(false);
   };
 
@@ -69,7 +101,19 @@ export const WithdrawalTracker = () => {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "UPDATE",
+          schema: "public",
+          table: "wallet_transactions",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchWithdrawals();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
           schema: "public",
           table: "wallet_transactions",
           filter: `user_id=eq.${user.id}`,
