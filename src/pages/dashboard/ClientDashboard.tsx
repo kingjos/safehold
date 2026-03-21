@@ -201,14 +201,18 @@ const ClientDashboard = () => {
           <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
             <h2 className="text-lg font-display font-semibold mb-4">Quick Actions</h2>
             <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <ArrowDownLeft className="w-5 h-5 text-success" />
-                Fund Wallet
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <ArrowUpRight className="w-5 h-5 text-primary" />
-                Withdraw Funds
-              </Button>
+              <Link to="/dashboard/wallet">
+                <Button variant="outline" className="w-full justify-start gap-3">
+                  <ArrowDownLeft className="w-5 h-5 text-success" />
+                  Fund Wallet
+                </Button>
+              </Link>
+              <Link to="/dashboard/wallet">
+                <Button variant="outline" className="w-full justify-start gap-3">
+                  <ArrowUpRight className="w-5 h-5 text-primary" />
+                  Withdraw Funds
+                </Button>
+              </Link>
               <Link to="/dashboard/escrows">
                 <Button variant="outline" className="w-full justify-start gap-3">
                   <FileText className="w-5 h-5 text-secondary" />
