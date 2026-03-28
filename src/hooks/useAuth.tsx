@@ -1,6 +1,5 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 
 type AppRole = 'client' | 'vendor' | 'admin';
@@ -18,104 +17,52 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
 }
 
+const mockUser = {
+  id: '00000000-0000-0000-0000-000000000000',
+  email: 'test@example.com',
+  aud: 'authenticated',
+  role: 'authenticated',
+  app_metadata: {},
+  user_metadata: { full_name: 'Test User' },
+  created_at: new Date().toISOString(),
+} as unknown as User;
+
+const mockSession = {
+  access_token: 'mock-token',
+  refresh_token: 'mock-refresh',
+  expires_in: 3600,
+  token_type: 'bearer',
+  user: mockUser,
+} as unknown as Session;
+
+const mockProfile: Profile = {
+  id: '00000000-0000-0000-0000-000000000000',
+  user_id: '00000000-0000-0000-0000-000000000000',
+  email: 'test@example.com',
+  full_name: 'Test User',
+  phone: null,
+  avatar_url: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [roles, setRoles] = useState<AppRole[]>([]);
-
-  const fetchUserRoles = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-    
-    if (!error && data) {
-      setRoles(data.map(r => r.role as AppRole));
-    }
+  const value: AuthContextType = {
+    user: mockUser,
+    session: mockSession,
+    profile: mockProfile,
+    loading: false,
+    roles: ['client', 'vendor', 'admin'],
+    signIn: async () => ({ error: null }),
+    signUp: async () => ({ error: null }),
+    signOut: async () => {},
+    hasRole: () => true,
   };
-
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (!error && data) {
-      setProfile(data);
-    }
-  };
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer role and profile fetching with setTimeout
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserRoles(session.user.id);
-            fetchProfile(session.user.id);
-          }, 0);
-        } else {
-          setRoles([]);
-          setProfile(null);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRoles(session.user.id);
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error: error as Error | null };
-  };
-
-  const signUp = async (email: string, password: string, metadata?: { full_name?: string; phone?: string }) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: metadata,
-      },
-    });
-    return { error: error as Error | null };
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setRoles([]);
-    setProfile(null);
-  };
-
-  const hasRole = (role: AppRole) => roles.includes(role);
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, roles, signIn, signUp, signOut, hasRole }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
