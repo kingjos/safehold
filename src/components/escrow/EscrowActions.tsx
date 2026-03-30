@@ -215,12 +215,7 @@ export function EscrowActions({ escrowId, status, amount, platformFee, userType,
           </AlertDialog>
         )}
         
-        {(status === "funded" || status === "in_progress" || status === "pending_release") && (
-          <Button variant="destructive" disabled={loading}>
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Raise Dispute
-          </Button>
-        )}
+        {/* Raise Dispute is handled in TransactionDetail */}
         
         {status === "pending_funding" && (
           <AlertDialog open={dialogOpen === "cancel"} onOpenChange={(open) => setDialogOpen(open ? "cancel" : null)}>
