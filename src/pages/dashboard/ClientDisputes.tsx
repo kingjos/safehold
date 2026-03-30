@@ -10,13 +10,14 @@ const mockDisputes: Dispute[] = [
     escrowTitle: "Website Development Project",
     amount: 350000,
     status: "under_investigation",
-    reason: "work_quality_issues",
+    reason: "item_not_as_described",
     description: "The delivered website does not meet the agreed specifications. Several features are missing and the design differs from the mockups.",
     client: { name: "John Doe", email: "john@example.com" },
     vendor: { name: "TechCorp Nigeria", email: "tech@example.com" },
     openedBy: "client",
     openedAt: "2024-01-15T10:30:00Z",
     updatedAt: "2024-01-18T14:20:00Z",
+    respondByDeadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString(),
     timeline: []
   },
   {
@@ -25,7 +26,7 @@ const mockDisputes: Dispute[] = [
     escrowTitle: "Logo Design",
     amount: 75000,
     status: "resolved_client",
-    reason: "work_not_completed",
+    reason: "item_not_delivered",
     description: "Vendor stopped responding after receiving the first milestone payment.",
     client: { name: "John Doe", email: "john@example.com" },
     vendor: { name: "Creative Studios", email: "creative@example.com" },
@@ -39,6 +40,22 @@ const mockDisputes: Dispute[] = [
       resolvedBy: "Admin",
       resolvedAt: "2024-01-14T16:45:00Z"
     }
+  },
+  {
+    id: "DSP-003",
+    escrowId: "ESC-2024-0156",
+    escrowTitle: "E-commerce Platform",
+    amount: 1200000,
+    status: "awaiting_response",
+    reason: "scope_disagreement",
+    description: "Dispute over additional feature requests and timeline extensions.",
+    client: { name: "John Doe", email: "john@example.com" },
+    vendor: { name: "TechBuilders Ltd", email: "tech@example.com" },
+    openedBy: "client",
+    openedAt: "2024-01-15T11:00:00Z",
+    updatedAt: "2024-01-18T09:30:00Z",
+    respondByDeadline: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+    timeline: []
   }
 ];
 
@@ -46,7 +63,6 @@ const ClientDisputes = () => {
   return (
     <DashboardLayout userType="client">
       <div className="p-6 lg:p-8 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="w-6 h-6 text-destructive" />
@@ -56,7 +72,6 @@ const ClientDisputes = () => {
             <p className="text-muted-foreground">Track and manage your escrow disputes.</p>
           </div>
         </div>
-
         <DisputeList disputes={mockDisputes} userType="client" />
       </div>
     </DashboardLayout>

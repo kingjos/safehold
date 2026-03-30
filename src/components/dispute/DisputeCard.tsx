@@ -1,5 +1,6 @@
 import { Dispute } from "@/types/dispute";
 import { DisputeStatusBadge } from "./DisputeStatusBadge";
+import { CountdownTimer } from "./CountdownTimer";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { AlertTriangle, ArrowRight, User, Building } from "lucide-react";
@@ -13,26 +14,22 @@ interface DisputeCardProps {
 export const DisputeCard = ({ dispute, userType }: DisputeCardProps) => {
   const getDetailLink = () => {
     switch (userType) {
-      case "client":
-        return `/dashboard/disputes/${dispute.id}`;
-      case "vendor":
-        return `/vendor/disputes/${dispute.id}`;
-      case "admin":
-        return `/admin/disputes/${dispute.id}`;
+      case "client": return `/dashboard/disputes/${dispute.id}`;
+      case "vendor": return `/vendor/disputes/${dispute.id}`;
+      case "admin": return `/admin/disputes/${dispute.id}`;
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
   };
+
+  const showCountdown = dispute.respondByDeadline && 
+    !["resolved_client", "resolved_vendor", "closed"].includes(dispute.status);
 
   return (
     <div className="p-5 rounded-2xl bg-card border border-border shadow-soft hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5 text-destructive" />
@@ -45,16 +42,20 @@ export const DisputeCard = ({ dispute, userType }: DisputeCardProps) => {
         <DisputeStatusBadge status={dispute.status} />
       </div>
 
+      {showCountdown && (
+        <div className="mb-3">
+          <CountdownTimer deadline={dispute.respondByDeadline!} />
+        </div>
+      )}
+
       <h3 className="font-medium mb-2">{dispute.escrowTitle}</h3>
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-        {dispute.description}
-      </p>
+      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{dispute.description}</p>
 
       <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <User className="w-4 h-4 text-muted-foreground" />
           <div>
-            <p className="text-muted-foreground text-xs">Client</p>
+            <p className="text-muted-foreground text-xs">Buyer</p>
             <p className="font-medium">{dispute.client.name}</p>
           </div>
         </div>
