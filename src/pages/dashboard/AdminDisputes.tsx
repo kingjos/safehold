@@ -9,30 +9,37 @@ const mockDisputes: Dispute[] = [
     escrowId: "ESC-2024-0125",
     escrowTitle: "Website Development Project",
     amount: 350000,
-    status: "pending_review",
-    reason: "work_quality_issues",
+    status: "under_investigation",
+    reason: "item_not_as_described",
     description: "The delivered website does not meet the agreed specifications.",
-    client: { name: "ABC Company", email: "abc@example.com" },
-    vendor: { name: "WebDev Solutions", email: "webdev@example.com" },
+    client: { name: "John Doe", email: "john@example.com" },
+    vendor: { name: "TechCorp Nigeria", email: "tech@techcorp.ng" },
     openedBy: "client",
-    openedAt: "2024-01-18T10:30:00Z",
-    updatedAt: "2024-01-18T10:30:00Z",
+    openedAt: "2024-01-15T10:30:00Z",
+    updatedAt: "2024-01-18T14:20:00Z",
+    respondByDeadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString(),
     timeline: []
   },
   {
     id: "DSP-002",
     escrowId: "ESC-2024-0098",
-    escrowTitle: "Graphic Design Package",
+    escrowTitle: "Logo Design",
     amount: 75000,
-    status: "under_investigation",
-    reason: "communication_breakdown",
-    description: "Vendor is unresponsive and has missed multiple deadlines.",
-    client: { name: "Fashion Hub", email: "fashion@example.com" },
-    vendor: { name: "Creative Agency", email: "creative@example.com" },
+    status: "resolved_client",
+    reason: "item_not_delivered",
+    description: "Vendor stopped responding after receiving the first milestone payment.",
+    client: { name: "ABC Company", email: "abc@example.com" },
+    vendor: { name: "Creative Studios", email: "creative@example.com" },
     openedBy: "client",
-    openedAt: "2024-01-16T08:00:00Z",
-    updatedAt: "2024-01-17T14:20:00Z",
-    timeline: []
+    openedAt: "2024-01-10T08:00:00Z",
+    updatedAt: "2024-01-14T16:45:00Z",
+    timeline: [],
+    resolution: {
+      type: "refund_client",
+      description: "Full refund to client due to non-delivery.",
+      resolvedBy: "Admin John",
+      resolvedAt: "2024-01-14T16:45:00Z"
+    }
   },
   {
     id: "DSP-003",
@@ -44,9 +51,10 @@ const mockDisputes: Dispute[] = [
     description: "Dispute over additional feature requests and timeline extensions.",
     client: { name: "RetailMax Nigeria", email: "retail@example.com" },
     vendor: { name: "TechBuilders Ltd", email: "tech@example.com" },
-    openedBy: "vendor",
+    openedBy: "client",
     openedAt: "2024-01-15T11:00:00Z",
     updatedAt: "2024-01-18T09:30:00Z",
+    respondByDeadline: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
     timeline: []
   },
   {
@@ -54,21 +62,16 @@ const mockDisputes: Dispute[] = [
     escrowId: "ESC-2024-0045",
     escrowTitle: "SEO Services",
     amount: 150000,
-    status: "resolved_client",
-    reason: "work_not_completed",
+    status: "pending_review",
+    reason: "item_not_delivered",
     description: "Service was not delivered as promised.",
     client: { name: "StartupNG", email: "startup@example.com" },
     vendor: { name: "Digital Marketing Pro", email: "digital@example.com" },
     openedBy: "client",
-    openedAt: "2024-01-10T14:00:00Z",
-    updatedAt: "2024-01-14T16:45:00Z",
-    timeline: [],
-    resolution: {
-      type: "refund_client",
-      description: "Full refund to client due to non-delivery.",
-      resolvedBy: "Admin John",
-      resolvedAt: "2024-01-14T16:45:00Z"
-    }
+    openedAt: "2024-01-18T14:00:00Z",
+    updatedAt: "2024-01-18T14:00:00Z",
+    respondByDeadline: new Date(Date.now() + 46 * 60 * 60 * 1000).toISOString(),
+    timeline: []
   }
 ];
 
@@ -84,7 +87,6 @@ const AdminDisputes = () => {
   return (
     <DashboardLayout userType="admin">
       <div className="p-6 lg:p-8 space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
@@ -97,7 +99,6 @@ const AdminDisputes = () => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4">
           <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
             <div className="flex items-center gap-3">
