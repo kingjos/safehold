@@ -4,10 +4,11 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Copy, User, Building, Calendar, DollarSign, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Copy, User, Building, Calendar, DollarSign, FileText, Loader2, AlertTriangle } from "lucide-react";
 import { EscrowTimeline } from "@/components/escrow/EscrowTimeline";
 import { EscrowStatusBadge } from "@/components/escrow/EscrowStatusBadge";
 import { EscrowActions } from "@/components/escrow/EscrowActions";
+import { CreateDisputeModal } from "@/components/dispute/CreateDisputeModal";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
@@ -33,39 +34,32 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
   const [events, setEvents] = useState<TransactionEvent[]>([]);
   const [counterparty, setCounterparty] = useState<CounterpartyProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [disputeModalOpen, setDisputeModalOpen] = useState(false);
 
   const fetchTransaction = async () => {
     if (!id) return;
-    
     try {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('id', id)
         .single();
-
       if (error) throw error;
       setTransaction(data);
     } catch (error) {
       console.error('Error fetching transaction:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load transaction details",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to load transaction details", variant: "destructive" });
     }
   };
 
   const fetchEvents = async () => {
     if (!id) return;
-    
     try {
       const { data, error } = await supabase
         .from('transaction_events')
         .select('*')
         .eq('transaction_id', id)
         .order('created_at', { ascending: true });
-
       if (error) throw error;
       setEvents(data || []);
     } catch (error) {
@@ -75,11 +69,9 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
 
   const fetchCounterparty = async () => {
     if (!id) return;
-    
     try {
       const { data, error } = await supabase
         .rpc('get_transaction_counterparty_profile', { transaction_id: id });
-
       if (error) throw error;
       if (data && data.length > 0) {
         setCounterparty(data[0]);
@@ -105,27 +97,16 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Transaction ID copied to clipboard",
-    });
+    toast({ title: "Copied", description: "Transaction ID copied to clipboard" });
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-NG", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
+      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
     });
   };
 
@@ -139,6 +120,9 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
       actor: userType === "client" ? "You" : counterparty?.full_name || "Client"
     }));
   };
+
+  const canRaiseDispute = transaction && 
+    ["funded", "in_progress", "pending_release"].includes(transaction.status);
 
   if (loading) {
     return (
@@ -166,11 +150,7 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
@@ -180,22 +160,28 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-muted-foreground">{transaction.id.slice(0, 8)}...</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => copyToClipboard(transaction.id)}
-              >
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(transaction.id)}>
                 <Copy className="h-3 w-3" />
               </Button>
             </div>
           </div>
         </div>
 
+        {/* Disputed banner */}
+        {transaction.status === "disputed" && (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+            <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-destructive">This transaction is disputed</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Funds are temporarily held during dispute review.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Transaction Details */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -208,24 +194,19 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
                   <p className="text-foreground">{transaction.description || "No description provided"}</p>
                 </div>
-                
                 <Separator />
-                
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-muted">
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        {userType === "client" ? "Vendor" : "Client"}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{userType === "client" ? "Vendor" : "Client"}</p>
                       <p className="font-medium text-foreground">
                         {counterparty?.full_name || transaction.vendor_email || "Not assigned"}
                       </p>
                     </div>
                   </div>
-                  
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-muted">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -236,7 +217,6 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
                     </div>
                   </div>
                 </div>
-                
                 {transaction.due_date && (
                   <>
                     <Separator />
@@ -254,7 +234,6 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
               </CardContent>
             </Card>
 
-            {/* Timeline */}
             {events.length > 0 && (
               <Card>
                 <CardHeader>
@@ -267,9 +246,7 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Payment Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -305,12 +282,11 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
               </CardContent>
             </Card>
 
-            {/* Actions */}
             <Card>
               <CardHeader>
                 <CardTitle>Actions</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <EscrowActions
                   escrowId={transaction.id}
                   status={transaction.status}
@@ -319,11 +295,29 @@ export default function TransactionDetail({ userType }: TransactionDetailProps) 
                   userType={userType}
                   onActionComplete={handleActionComplete}
                 />
+                {canRaiseDispute && (
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => setDisputeModalOpen(true)}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Raise Dispute
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      <CreateDisputeModal
+        open={disputeModalOpen}
+        onOpenChange={setDisputeModalOpen}
+        escrowId={transaction.id}
+        escrowTitle={transaction.title}
+        onSuccess={handleActionComplete}
+      />
     </DashboardLayout>
   );
 }
