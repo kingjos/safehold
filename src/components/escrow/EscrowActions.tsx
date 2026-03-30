@@ -280,12 +280,7 @@ export function EscrowActions({ escrowId, status, amount, platformFee, userType,
         </AlertDialog>
       )}
       
-      {(status === "funded" || status === "in_progress") && (
-        <Button variant="destructive" disabled={loading}>
-          <AlertTriangle className="h-4 w-4 mr-2" />
-          Raise Dispute
-        </Button>
-      )}
+      {/* Raise Dispute is handled in TransactionDetail */}
     </div>
   );
 }
