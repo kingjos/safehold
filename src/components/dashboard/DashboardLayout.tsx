@@ -12,7 +12,8 @@ import {
   X,
   Plus,
   ChevronDown,
-  User
+  User,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
