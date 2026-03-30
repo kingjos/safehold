@@ -12,7 +12,8 @@ import {
   X,
   Plus,
   ChevronDown,
-  User
+  User,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
@@ -26,6 +27,7 @@ const clientLinks = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
   { href: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
   { href: "/dashboard/escrows", icon: FileText, label: "My Escrows" },
+  { href: "/dashboard/disputes", icon: AlertTriangle, label: "Disputes" },
   { href: "/dashboard/notifications", icon: Bell, label: "Notifications" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
@@ -34,6 +36,7 @@ const vendorLinks = [
   { href: "/vendor", icon: LayoutDashboard, label: "Overview" },
   { href: "/vendor/wallet", icon: Wallet, label: "Wallet" },
   { href: "/vendor/escrows", icon: FileText, label: "My Jobs" },
+  { href: "/vendor/disputes", icon: AlertTriangle, label: "Disputes" },
   { href: "/vendor/notifications", icon: Bell, label: "Notifications" },
   { href: "/vendor/settings", icon: Settings, label: "Settings" },
 ];
