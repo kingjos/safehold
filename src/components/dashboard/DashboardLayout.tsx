@@ -36,6 +36,7 @@ const vendorLinks = [
   { href: "/vendor", icon: LayoutDashboard, label: "Overview" },
   { href: "/vendor/wallet", icon: Wallet, label: "Wallet" },
   { href: "/vendor/escrows", icon: FileText, label: "My Jobs" },
+  { href: "/vendor/disputes", icon: AlertTriangle, label: "Disputes" },
   { href: "/vendor/notifications", icon: Bell, label: "Notifications" },
   { href: "/vendor/settings", icon: Settings, label: "Settings" },
 ];
