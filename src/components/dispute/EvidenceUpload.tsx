@@ -11,6 +11,7 @@ interface UploadedFile {
 
 interface EvidenceUploadProps {
   onFilesChange?: (files: UploadedFile[]) => void;
+  onRawFilesChange?: (files: File[]) => void;
   maxFiles?: number;
   disabled?: boolean;
 }
