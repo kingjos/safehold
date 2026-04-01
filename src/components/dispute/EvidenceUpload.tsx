@@ -25,6 +25,7 @@ export const EvidenceUpload = ({ onFilesChange, onRawFilesChange, maxFiles = 5, 
   const addFiles = (newFiles: FileList | null) => {
     if (!newFiles) return;
     const added: UploadedFile[] = [];
+    const addedRaw: File[] = [];
     for (let i = 0; i < newFiles.length && files.length + added.length < maxFiles; i++) {
       const file = newFiles[i];
       const isImage = file.type.startsWith("image/");
@@ -34,16 +35,24 @@ export const EvidenceUpload = ({ onFilesChange, onRawFilesChange, maxFiles = 5, 
         type: isImage ? "image" : "document",
         preview: isImage ? URL.createObjectURL(file) : undefined,
       });
+      addedRaw.push(file);
     }
     const updated = [...files, ...added];
+    const updatedRaw = [...rawFiles, ...addedRaw];
     setFiles(updated);
+    setRawFiles(updatedRaw);
     onFilesChange?.(updated);
+    onRawFilesChange?.(updatedRaw);
   };
 
   const removeFile = (id: string) => {
+    const idx = files.findIndex((f) => f.id === id);
     const updated = files.filter((f) => f.id !== id);
+    const updatedRaw = rawFiles.filter((_, i) => i !== idx);
     setFiles(updated);
+    setRawFiles(updatedRaw);
     onFilesChange?.(updated);
+    onRawFilesChange?.(updatedRaw);
   };
 
   return (
