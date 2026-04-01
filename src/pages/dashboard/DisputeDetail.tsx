@@ -8,6 +8,7 @@ import { EvidenceGallery } from "@/components/dispute/EvidenceGallery";
 import { AlertBox } from "@/components/dispute/AlertBox";
 import { CountdownTimer } from "@/components/dispute/CountdownTimer";
 import { EvidenceUpload } from "@/components/dispute/EvidenceUpload";
+import { VendorResponseForm } from "@/components/dispute/VendorResponseForm";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
