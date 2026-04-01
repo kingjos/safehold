@@ -16,8 +16,9 @@ interface EvidenceUploadProps {
   disabled?: boolean;
 }
 
-export const EvidenceUpload = ({ onFilesChange, maxFiles = 5, disabled = false }: EvidenceUploadProps) => {
+export const EvidenceUpload = ({ onFilesChange, onRawFilesChange, maxFiles = 5, disabled = false }: EvidenceUploadProps) => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
