@@ -314,28 +314,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                   )}
                 </div>
               ) : userType === "vendor" && !isResolved ? (
-                <div className="space-y-4">
-                  <AlertBox variant="warning">
-                    Failure to respond may result in automatic decision in buyer's favor.
-                  </AlertBox>
-                  <div className="space-y-2">
-                    <Label>Your Explanation</Label>
-                    <Textarea
-                      placeholder="Provide your side of the story..."
-                      value={vendorResponseText}
-                      onChange={(e) => setVendorResponseText(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Upload Proof (waybill, delivery image, etc.)</Label>
-                    <EvidenceUpload />
-                  </div>
-                  <Button onClick={handleVendorSubmitResponse} disabled={!vendorResponseText.trim()} className="w-full">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Submit Response
-                  </Button>
-                </div>
+                <VendorResponseForm disputeId={dispute.id} />
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-6">
                   {isAwaitingVendor ? "Waiting for vendor response..." : "No response submitted."}
