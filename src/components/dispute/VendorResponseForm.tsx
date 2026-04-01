@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -17,18 +17,6 @@ export const VendorResponseForm = ({ disputeId, onSuccess }: VendorResponseFormP
   const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const { submitVendorResponse, isSubmitting } = useDispute();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFilesChange = (files: any[]) => {
-    // We need actual File objects - the EvidenceUpload component stores metadata only
-    // We'll collect raw files separately
-  };
-
-  const handleRawFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setRawFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!responseText.trim()) return;
@@ -77,16 +65,7 @@ export const VendorResponseForm = ({ disputeId, onSuccess }: VendorResponseFormP
       </div>
       <div className="space-y-2">
         <Label>Upload Proof (waybill, delivery image, etc.)</Label>
-        <EvidenceUpload onFilesChange={handleFilesChange} />
-        {/* Hidden file input to capture actual File objects for upload */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          multiple
-          accept="image/*,.pdf,.doc,.docx"
-          onChange={handleRawFileChange}
-        />
+        <EvidenceUpload onRawFilesChange={setRawFiles} />
       </div>
       <Button
         onClick={handleSubmit}
