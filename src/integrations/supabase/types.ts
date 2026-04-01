@@ -88,6 +88,44 @@ export type Database = {
           },
         ]
       }
+      dispute_evidence: {
+        Row: {
+          created_at: string
+          dispute_id: string
+          file_name: string
+          file_type: string
+          file_url: string
+          id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          dispute_id: string
+          file_name: string
+          file_type?: string
+          file_url: string
+          id?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          dispute_id?: string
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_evidence_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disputes: {
         Row: {
           created_at: string
@@ -100,6 +138,7 @@ export type Database = {
           status: Database["public"]["Enums"]["dispute_status"]
           transaction_id: string
           updated_at: string
+          vendor_response: string | null
         }
         Insert: {
           created_at?: string
@@ -112,6 +151,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["dispute_status"]
           transaction_id: string
           updated_at?: string
+          vendor_response?: string | null
         }
         Update: {
           created_at?: string
@@ -124,6 +164,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["dispute_status"]
           transaction_id?: string
           updated_at?: string
+          vendor_response?: string | null
         }
         Relationships: [
           {
