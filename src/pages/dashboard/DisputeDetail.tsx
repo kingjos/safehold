@@ -55,7 +55,7 @@ const mockDisputes: Record<string, Dispute> = {
     escrowId: "ESC-2024-0125",
     escrowTitle: "Website Development Project",
     amount: 350000,
-    status: "under_investigation",
+    status: "under_review",
     reason: "item_not_as_described",
     description: "The delivered website does not meet the agreed specifications. Several key features that were discussed in our initial meetings are missing, including the customer dashboard and the payment integration.",
     client: { name: "John Doe", email: "john@example.com" },
