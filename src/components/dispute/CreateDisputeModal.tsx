@@ -89,6 +89,7 @@ export const CreateDisputeModal = ({
     setReason("");
     setDescription("");
     setFiles([]);
+    setRawFiles([]);
     setSubmitted(false);
     onOpenChange(false);
   };
