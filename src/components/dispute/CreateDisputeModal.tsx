@@ -87,7 +87,7 @@ export const CreateDisputeModal = ({
     }
     setReason("");
     setDescription("");
-    setFiles([]);
+    setRawFiles([]);
     setRawFiles([]);
     setSubmitted(false);
     onOpenChange(false);
