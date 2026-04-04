@@ -220,5 +220,5 @@ export const useDispute = () => {
     }
   };
 
-  return { submitVendorResponse, isSubmitting };
+  return { createDispute, submitVendorResponse, isSubmitting };
 };
