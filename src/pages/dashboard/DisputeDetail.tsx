@@ -55,7 +55,7 @@ const mockDisputes: Record<string, Dispute> = {
     escrowId: "ESC-2024-0125",
     escrowTitle: "Website Development Project",
     amount: 350000,
-    status: "under_investigation",
+    status: "under_review",
     reason: "item_not_as_described",
     description: "The delivered website does not meet the agreed specifications. Several key features that were discussed in our initial meetings are missing, including the customer dashboard and the payment integration.",
     client: { name: "John Doe", email: "john@example.com" },
@@ -80,7 +80,7 @@ const mockDisputes: Record<string, Dispute> = {
     escrowId: "ESC-2024-0098",
     escrowTitle: "Logo Design",
     amount: 75000,
-    status: "resolved_client",
+    status: "resolved",
     reason: "item_not_delivered",
     description: "Vendor stopped responding after receiving the first milestone payment.",
     client: { name: "John Doe", email: "john@example.com" },
@@ -192,8 +192,8 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
     setAdminSelectedAction(null);
   };
 
-  const isResolved = ["resolved_client", "resolved_vendor", "closed"].includes(dispute.status);
-  const isAwaitingVendor = dispute.status === "awaiting_response" || dispute.status === "pending_review";
+  const isResolved = ["resolved", "closed"].includes(dispute.status);
+  const isAwaitingVendor = dispute.status === "awaiting_response" || dispute.status === "open";
 
   return (
     <DashboardLayout userType={userType}>

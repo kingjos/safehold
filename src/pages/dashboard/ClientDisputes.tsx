@@ -1,65 +1,11 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DisputeList } from "@/components/dispute/DisputeList";
-import { Dispute } from "@/types/dispute";
-import { AlertTriangle } from "lucide-react";
-
-const mockDisputes: Dispute[] = [
-  {
-    id: "DSP-001",
-    escrowId: "ESC-2024-0125",
-    escrowTitle: "Website Development Project",
-    amount: 350000,
-    status: "under_investigation",
-    reason: "item_not_as_described",
-    description: "The delivered website does not meet the agreed specifications. Several features are missing and the design differs from the mockups.",
-    client: { name: "John Doe", email: "john@example.com" },
-    vendor: { name: "TechCorp Nigeria", email: "tech@example.com" },
-    openedBy: "client",
-    openedAt: "2024-01-15T10:30:00Z",
-    updatedAt: "2024-01-18T14:20:00Z",
-    respondByDeadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString(),
-    timeline: []
-  },
-  {
-    id: "DSP-002",
-    escrowId: "ESC-2024-0098",
-    escrowTitle: "Logo Design",
-    amount: 75000,
-    status: "resolved_client",
-    reason: "item_not_delivered",
-    description: "Vendor stopped responding after receiving the first milestone payment.",
-    client: { name: "John Doe", email: "john@example.com" },
-    vendor: { name: "Creative Studios", email: "creative@example.com" },
-    openedBy: "client",
-    openedAt: "2024-01-10T08:00:00Z",
-    updatedAt: "2024-01-14T16:45:00Z",
-    timeline: [],
-    resolution: {
-      type: "refund_client",
-      description: "Full refund issued to client after vendor failed to respond.",
-      resolvedBy: "Admin",
-      resolvedAt: "2024-01-14T16:45:00Z"
-    }
-  },
-  {
-    id: "DSP-003",
-    escrowId: "ESC-2024-0156",
-    escrowTitle: "E-commerce Platform",
-    amount: 1200000,
-    status: "awaiting_response",
-    reason: "scope_disagreement",
-    description: "Dispute over additional feature requests and timeline extensions.",
-    client: { name: "John Doe", email: "john@example.com" },
-    vendor: { name: "TechBuilders Ltd", email: "tech@example.com" },
-    openedBy: "client",
-    openedAt: "2024-01-15T11:00:00Z",
-    updatedAt: "2024-01-18T09:30:00Z",
-    respondByDeadline: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-    timeline: []
-  }
-];
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { useDisputes } from "@/hooks/useDisputes";
 
 const ClientDisputes = () => {
+  const { disputes, loading } = useDisputes("client");
+
   return (
     <DashboardLayout userType="client">
       <div className="p-6 lg:p-8 space-y-6">
@@ -72,7 +18,13 @@ const ClientDisputes = () => {
             <p className="text-muted-foreground">Track and manage your escrow disputes.</p>
           </div>
         </div>
-        <DisputeList disputes={mockDisputes} userType="client" />
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <DisputeList disputes={disputes} userType="client" />
+        )}
       </div>
     </DashboardLayout>
   );

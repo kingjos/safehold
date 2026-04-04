@@ -5,34 +5,34 @@ interface DisputeStatusBadgeProps {
 }
 
 const statusConfig: Record<DisputeStatus, { label: string; className: string }> = {
-  pending_review: {
-    label: "Pending Review",
+  open: {
+    label: "Open",
     className: "status-pending"
   },
-  under_investigation: {
-    label: "Under Investigation",
+  under_review: {
+    label: "Under Review",
     className: "status-active"
   },
   awaiting_response: {
     label: "Awaiting Response",
     className: "bg-secondary/10 text-secondary border-secondary/20"
   },
-  resolved_client: {
-    label: "Resolved (Client)",
-    className: "status-completed"
-  },
-  resolved_vendor: {
-    label: "Resolved (Vendor)",
+  resolved: {
+    label: "Resolved",
     className: "status-completed"
   },
   closed: {
     label: "Closed",
     className: "bg-muted text-muted-foreground border-border"
+  },
+  escalated: {
+    label: "Escalated",
+    className: "bg-destructive/10 text-destructive border-destructive/20"
   }
 };
 
 export const DisputeStatusBadge = ({ status }: DisputeStatusBadgeProps) => {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.open;
   
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${config.className}`}>
