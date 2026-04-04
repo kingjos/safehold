@@ -25,7 +25,7 @@ export const DisputeCard = ({ dispute, userType }: DisputeCardProps) => {
   };
 
   const showCountdown = dispute.respondByDeadline && 
-    !["resolved_client", "resolved_vendor", "closed"].includes(dispute.status);
+    !["resolved", "closed"].includes(dispute.status);
 
   return (
     <div className="p-5 rounded-2xl bg-card border border-border shadow-soft hover:shadow-md transition-shadow">
