@@ -56,7 +56,6 @@ export const CreateDisputeModal = ({
 }: CreateDisputeModalProps) => {
   const [reason, setReason] = useState<DisputeReason | "">("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
   const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const { createDispute, isSubmitting } = useDispute();
