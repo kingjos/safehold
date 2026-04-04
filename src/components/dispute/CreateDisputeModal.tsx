@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { AlertTriangle } from "lucide-react";
 import { EvidenceUpload } from "./EvidenceUpload";
 import { AlertBox } from "./AlertBox";
+import { useDispute } from "@/hooks/useDispute";
 
 interface CreateDisputeModalProps {
   open: boolean;
