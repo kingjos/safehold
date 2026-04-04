@@ -123,7 +123,7 @@ export const useDispute = () => {
     }
   };
 
-
+  const submitVendorResponse = async ({ disputeId, responseText, files }: VendorResponseData) => {
     setIsSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();

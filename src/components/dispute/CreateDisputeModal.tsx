@@ -56,7 +56,6 @@ export const CreateDisputeModal = ({
 }: CreateDisputeModalProps) => {
   const [reason, setReason] = useState<DisputeReason | "">("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
   const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const { createDispute, isSubmitting } = useDispute();
@@ -88,7 +87,7 @@ export const CreateDisputeModal = ({
     }
     setReason("");
     setDescription("");
-    setFiles([]);
+    setRawFiles([]);
     setRawFiles([]);
     setSubmitted(false);
     onOpenChange(false);
@@ -157,7 +156,7 @@ export const CreateDisputeModal = ({
 
               <div className="space-y-2">
                 <Label>Upload Evidence</Label>
-                <EvidenceUpload onFilesChange={setFiles} onRawFilesChange={setRawFiles} />
+                <EvidenceUpload onRawFilesChange={setRawFiles} />
               </div>
 
               <AlertBox variant="warning">
