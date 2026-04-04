@@ -132,7 +132,7 @@ export const DisputeActions = ({ status, userType, onAction }: DisputeActionsPro
   }
 
   // Admin actions
-  if (status === "closed" || status === "resolved_client" || status === "resolved_vendor") {
+  if (status === "closed" || status === "resolved") {
     return (
       <div className="space-y-4">
         <div className="p-4 rounded-lg bg-success/10 border border-success/20">

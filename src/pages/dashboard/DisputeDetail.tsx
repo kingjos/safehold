@@ -192,8 +192,8 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
     setAdminSelectedAction(null);
   };
 
-  const isResolved = ["resolved_client", "resolved_vendor", "closed"].includes(dispute.status);
-  const isAwaitingVendor = dispute.status === "awaiting_response" || dispute.status === "pending_review";
+  const isResolved = ["resolved", "closed"].includes(dispute.status);
+  const isAwaitingVendor = dispute.status === "awaiting_response" || dispute.status === "open";
 
   return (
     <DashboardLayout userType={userType}>
