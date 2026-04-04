@@ -1,10 +1,10 @@
 export type DisputeStatus = 
-  | "pending_review"
-  | "under_investigation"
+  | "open"
+  | "under_review"
   | "awaiting_response"
-  | "resolved_client"
-  | "resolved_vendor"
-  | "closed";
+  | "resolved"
+  | "closed"
+  | "escalated";
 
 export type DisputeReason = 
   | "item_not_delivered"
@@ -44,7 +44,7 @@ export interface Dispute {
   escrowTitle: string;
   amount: number;
   status: DisputeStatus;
-  reason: DisputeReason;
+  reason: DisputeReason | string;
   description: string;
   client: {
     name: string;
