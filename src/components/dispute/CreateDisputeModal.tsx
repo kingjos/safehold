@@ -156,7 +156,7 @@ export const CreateDisputeModal = ({
 
               <div className="space-y-2">
                 <Label>Upload Evidence</Label>
-                <EvidenceUpload onFilesChange={setFiles} onRawFilesChange={setRawFiles} />
+                <EvidenceUpload onRawFilesChange={setRawFiles} />
               </div>
 
               <AlertBox variant="warning">
