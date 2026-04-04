@@ -56,25 +56,30 @@ export const CreateDisputeModal = ({
 }: CreateDisputeModalProps) => {
   const [reason, setReason] = useState<DisputeReason | "">("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState<any[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const { createDispute, isSubmitting } = useDispute();
 
   const canSubmit = reason && description.trim().length > 0 && !isSubmitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setIsSubmitting(false);
-    setSubmitted(true);
-    
-    toast({
-      title: "Dispute submitted",
-      description: "Funds are now held while we review your case.",
+    const result = await createDispute({
+      transactionId: escrowId,
+      reason: reason as DisputeReason,
+      description,
+      files: rawFiles,
     });
+
+    if (result.success) {
+      setSubmitted(true);
+      toast({
+        title: "Dispute submitted",
+        description: "Funds are now held while we review your case.",
+      });
+    }
   };
 
   const handleClose = () => {
