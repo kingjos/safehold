@@ -1,6 +1,31 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { DisputeReason } from "@/types/dispute";
+import type { Database } from "@/integrations/supabase/types";
+
+type DbDisputeReason = Database["public"]["Enums"]["dispute_reason"];
+
+const reasonToDbReason: Record<DisputeReason, DbDisputeReason> = {
+  item_not_delivered: "service_not_delivered",
+  item_not_as_described: "quality_issues",
+  damaged_item: "quality_issues",
+  wrong_item: "quality_issues",
+  work_not_completed: "service_not_delivered",
+  work_quality_issues: "quality_issues",
+  payment_issues: "payment_dispute",
+  communication_breakdown: "communication_issues",
+  scope_disagreement: "scope_disagreement",
+  deadline_missed: "late_delivery",
+  other: "other",
+};
+
+interface CreateDisputeData {
+  transactionId: string;
+  reason: DisputeReason;
+  description: string;
+  files: File[];
+}
 
 interface VendorResponseData {
   disputeId: string;
