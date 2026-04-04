@@ -34,10 +34,10 @@ export const DisputeList = ({ disputes, userType }: DisputeListProps) => {
   });
 
   const activeDisputes = filteredDisputes.filter(
-    (d) => !["closed", "resolved_client", "resolved_vendor"].includes(d.status)
+    (d) => !["closed", "resolved"].includes(d.status)
   );
   const resolvedDisputes = filteredDisputes.filter((d) =>
-    ["closed", "resolved_client", "resolved_vendor"].includes(d.status)
+    ["closed", "resolved"].includes(d.status)
   );
 
   return (
