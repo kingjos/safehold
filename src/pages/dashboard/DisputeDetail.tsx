@@ -80,7 +80,7 @@ const mockDisputes: Record<string, Dispute> = {
     escrowId: "ESC-2024-0098",
     escrowTitle: "Logo Design",
     amount: 75000,
-    status: "resolved_client",
+    status: "resolved",
     reason: "item_not_delivered",
     description: "Vendor stopped responding after receiving the first milestone payment.",
     client: { name: "John Doe", email: "john@example.com" },
