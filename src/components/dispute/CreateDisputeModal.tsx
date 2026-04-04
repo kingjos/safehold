@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { AlertTriangle } from "lucide-react";
 import { EvidenceUpload } from "./EvidenceUpload";
 import { AlertBox } from "./AlertBox";
+import { useDispute } from "@/hooks/useDispute";
 
 interface CreateDisputeModalProps {
   open: boolean;
@@ -55,25 +56,30 @@ export const CreateDisputeModal = ({
 }: CreateDisputeModalProps) => {
   const [reason, setReason] = useState<DisputeReason | "">("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState<any[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const { createDispute, isSubmitting } = useDispute();
 
   const canSubmit = reason && description.trim().length > 0 && !isSubmitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setIsSubmitting(false);
-    setSubmitted(true);
-    
-    toast({
-      title: "Dispute submitted",
-      description: "Funds are now held while we review your case.",
+    const result = await createDispute({
+      transactionId: escrowId,
+      reason: reason as DisputeReason,
+      description,
+      files: rawFiles,
     });
+
+    if (result.success) {
+      setSubmitted(true);
+      toast({
+        title: "Dispute submitted",
+        description: "Funds are now held while we review your case.",
+      });
+    }
   };
 
   const handleClose = () => {
@@ -83,6 +89,7 @@ export const CreateDisputeModal = ({
     setReason("");
     setDescription("");
     setFiles([]);
+    setRawFiles([]);
     setSubmitted(false);
     onOpenChange(false);
   };
@@ -150,7 +157,7 @@ export const CreateDisputeModal = ({
 
               <div className="space-y-2">
                 <Label>Upload Evidence</Label>
-                <EvidenceUpload onFilesChange={setFiles} />
+                <EvidenceUpload onFilesChange={setFiles} onRawFilesChange={setRawFiles} />
               </div>
 
               <AlertBox variant="warning">
