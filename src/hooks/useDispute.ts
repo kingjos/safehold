@@ -36,7 +36,94 @@ interface VendorResponseData {
 export const useDispute = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submitVendorResponse = async ({ disputeId, responseText, files }: VendorResponseData) => {
+  const createDispute = async ({ transactionId, reason, description, files }: CreateDisputeData) => {
+    setIsSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const dbReason = reasonToDbReason[reason];
+
+      // Insert dispute
+      const { data: dispute, error: disputeError } = await supabase
+        .from("disputes")
+        .insert({
+          transaction_id: transactionId,
+          opened_by: user.id,
+          reason: dbReason,
+          description,
+        })
+        .select()
+        .single();
+
+      if (disputeError) throw disputeError;
+
+      // Upload evidence files
+      for (const file of files) {
+        const fileExt = file.name.split(".").pop();
+        const filePath = `${user.id}/${dispute.id}/${crypto.randomUUID()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("dispute-evidence")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("dispute-evidence")
+          .getPublicUrl(filePath);
+
+        await supabase.from("dispute_evidence").insert({
+          dispute_id: dispute.id,
+          uploaded_by: user.id,
+          file_name: file.name,
+          file_url: urlData.publicUrl,
+          file_type: file.type.startsWith("image/") ? "image" : "document",
+        });
+      }
+
+      // Update transaction status to disputed
+      const { error: txError } = await supabase
+        .from("transactions")
+        .update({ status: "disputed" as any })
+        .eq("id", transactionId);
+
+      if (txError) throw txError;
+
+      // Add dispute event
+      await supabase.from("dispute_events").insert({
+        dispute_id: dispute.id,
+        user_id: user.id,
+        event_type: "opened",
+        description: `Dispute opened: ${description.slice(0, 100)}`,
+      });
+
+      // Add transaction event
+      await supabase.from("transaction_events").insert({
+        transaction_id: transactionId,
+        user_id: user.id,
+        event_type: "disputed",
+        description: "A dispute was raised on this transaction",
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Create dispute error:", error);
+      toast({
+        title: "Failed to create dispute",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+      return { success: false };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
     setIsSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
