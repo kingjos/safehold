@@ -60,11 +60,11 @@ export const DisputeList = ({ disputes, userType }: DisputeListProps) => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Disputes</SelectItem>
-            <SelectItem value="pending_review">Pending Review</SelectItem>
-            <SelectItem value="under_investigation">Under Investigation</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="under_review">Under Review</SelectItem>
             <SelectItem value="awaiting_response">Awaiting Response</SelectItem>
-            <SelectItem value="resolved_client">Resolved (Client)</SelectItem>
-            <SelectItem value="resolved_vendor">Resolved (Vendor)</SelectItem>
+            <SelectItem value="escalated">Escalated</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
         </Select>
