@@ -238,14 +238,32 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
     console.log("Dispute action:", action, data);
   };
 
-  const handleAdminAction = (action: string) => {
-    const labels: Record<string, string> = {
-      refund_buyer: "Refund Buyer",
-      release_vendor: "Release funds to Vendor",
-      partial_refund: "Partial Refund",
-    };
-    toast({ title: "Decision applied", description: `Action: ${labels[action] || action}. Both parties have been notified.` });
-    setAdminSelectedAction(null);
+  const handleAdminAction = async (action: string) => {
+    if (!dispute) return;
+    setResolving(true);
+    try {
+      const { error } = await supabase.rpc("resolve_dispute", {
+        p_dispute_id: dispute.id,
+        p_action: action,
+        p_partial_amount: action === "partial_refund" ? Number(partialAmount) : null,
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Decision applied", description: "Both parties have been notified." });
+      setAdminSelectedAction(null);
+      setPartialAmount("");
+      await fetchDispute();
+    } catch (error: any) {
+      console.error("Resolve dispute error:", error);
+      toast({
+        title: "Failed to resolve dispute",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResolving(false);
+    }
   };
 
   if (loading) {
