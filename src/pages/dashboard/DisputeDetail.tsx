@@ -483,8 +483,8 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                 {adminSelectedAction && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button className="w-full" disabled={adminSelectedAction === "partial_refund" && !partialAmount}>
-                        Confirm Decision
+                      <Button className="w-full" disabled={resolving || (adminSelectedAction === "partial_refund" && !partialAmount)}>
+                        {resolving ? "Processing..." : "Confirm Decision"}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
