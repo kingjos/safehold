@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DisputeStatusBadge } from "@/components/dispute/DisputeStatusBadge";
 import { DisputeTimeline } from "@/components/dispute/DisputeTimeline";
@@ -7,13 +7,12 @@ import { DisputeActions } from "@/components/dispute/DisputeActions";
 import { EvidenceGallery } from "@/components/dispute/EvidenceGallery";
 import { AlertBox } from "@/components/dispute/AlertBox";
 import { CountdownTimer } from "@/components/dispute/CountdownTimer";
-import { EvidenceUpload } from "@/components/dispute/EvidenceUpload";
 import { VendorResponseForm } from "@/components/dispute/VendorResponseForm";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,108 +24,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dispute, DisputeEvidence } from "@/types/dispute";
-import { 
-  ArrowLeft, AlertTriangle, Copy, User, Building, Calendar, FileText, 
-  ExternalLink, MessageSquare, CheckCircle2, XCircle, DollarSign, Upload, Shield
+import { Dispute, DisputeEvidence, DisputeEvent } from "@/types/dispute";
+import {
+  ArrowLeft, AlertTriangle, Copy, User, Building, Calendar, FileText,
+  CheckCircle2, DollarSign, Shield
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DisputeDetailProps {
   userType: "client" | "vendor" | "admin";
 }
 
-const mockBuyerEvidence: DisputeEvidence[] = [
-  { id: "e1", type: "image", name: "screenshot-dashboard.png", url: "/placeholder.svg", uploadedAt: "2024-01-17T14:30:00Z", uploadedBy: "client" },
-  { id: "e2", type: "document", name: "contract-agreement.pdf", url: "#", uploadedAt: "2024-01-17T14:32:00Z", uploadedBy: "client" },
-  { id: "e3", type: "image", name: "email-correspondence.png", url: "/placeholder.svg", uploadedAt: "2024-01-17T14:35:00Z", uploadedBy: "client" },
-];
-
-const mockVendorEvidence: DisputeEvidence[] = [
-  { id: "e4", type: "image", name: "delivery-proof.png", url: "/placeholder.svg", uploadedAt: "2024-01-18T09:00:00Z", uploadedBy: "vendor" },
-  { id: "e5", type: "document", name: "waybill-receipt.pdf", url: "#", uploadedAt: "2024-01-18T09:05:00Z", uploadedBy: "vendor" },
-];
-
-// Mock dispute data for 3 scenarios
-const mockDisputes: Record<string, Dispute> = {
-  "DSP-001": {
-    id: "DSP-001",
-    escrowId: "ESC-2024-0125",
-    escrowTitle: "Website Development Project",
-    amount: 350000,
-    status: "under_review",
-    reason: "item_not_as_described",
-    description: "The delivered website does not meet the agreed specifications. Several key features that were discussed in our initial meetings are missing, including the customer dashboard and the payment integration.",
-    client: { name: "John Doe", email: "john@example.com" },
-    vendor: { name: "TechCorp Nigeria", email: "tech@techcorp.ng" },
-    openedBy: "client",
-    openedAt: "2024-01-15T10:30:00Z",
-    updatedAt: "2024-01-18T14:20:00Z",
-    respondByDeadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString(),
-    buyerEvidence: mockBuyerEvidence,
-    vendorEvidence: mockVendorEvidence,
-    vendorResponse: "The features mentioned were not part of the original scope. We delivered exactly what was agreed upon in the initial contract.",
-    timeline: [
-      { id: "1", type: "opened", title: "Dispute Opened", description: "Buyer opened a dispute citing item not as described.", timestamp: "2024-01-15T10:30:00Z", actor: "John Doe", actorRole: "client" },
-      { id: "2", type: "evidence", title: "Buyer Submitted Evidence", description: "Contract documents and screenshots uploaded.", timestamp: "2024-01-17T14:30:00Z", actor: "John Doe", actorRole: "client" },
-      { id: "3", type: "admin_message", title: "Case Assigned", description: "This dispute has been assigned to our review team.", timestamp: "2024-01-15T11:00:00Z", actor: "System", actorRole: "system" },
-      { id: "4", type: "response", title: "Vendor Responded", description: "Vendor provided explanation and uploaded delivery proof.", timestamp: "2024-01-18T09:00:00Z", actor: "TechCorp Nigeria", actorRole: "vendor" },
-      { id: "5", type: "admin_message", title: "Admin Reviewing", description: "Evidence from both parties is under review.", timestamp: "2024-01-18T14:20:00Z", actor: "Admin Sarah", actorRole: "admin" },
-    ],
-  },
-  "DSP-002": {
-    id: "DSP-002",
-    escrowId: "ESC-2024-0098",
-    escrowTitle: "Logo Design",
-    amount: 75000,
-    status: "resolved",
-    reason: "item_not_delivered",
-    description: "Vendor stopped responding after receiving the first milestone payment.",
-    client: { name: "John Doe", email: "john@example.com" },
-    vendor: { name: "Creative Studios", email: "creative@example.com" },
-    openedBy: "client",
-    openedAt: "2024-01-10T08:00:00Z",
-    updatedAt: "2024-01-14T16:45:00Z",
-    buyerEvidence: [
-      { id: "e6", type: "image", name: "chat-screenshot.png", url: "/placeholder.svg", uploadedAt: "2024-01-10T08:05:00Z", uploadedBy: "client" },
-    ],
-    vendorEvidence: [],
-    timeline: [
-      { id: "1", type: "opened", title: "Dispute Opened", description: "Buyer reported item not delivered.", timestamp: "2024-01-10T08:00:00Z", actor: "John Doe", actorRole: "client" },
-      { id: "2", type: "admin_message", title: "Awaiting Vendor Response", description: "Vendor has 48 hours to respond.", timestamp: "2024-01-10T09:00:00Z", actor: "System", actorRole: "system" },
-      { id: "3", type: "admin_message", title: "Vendor Did Not Respond", description: "The response window has expired.", timestamp: "2024-01-12T09:00:00Z", actor: "System", actorRole: "system" },
-      { id: "4", type: "resolved", title: "Resolved: Refunded Buyer", description: "Full refund issued to buyer due to non-delivery.", timestamp: "2024-01-14T16:45:00Z", actor: "Admin", actorRole: "admin" },
-    ],
-    resolution: {
-      type: "refund_client",
-      description: "Full refund issued to buyer due to non-delivery and vendor non-response.",
-      resolvedBy: "Admin John",
-      resolvedAt: "2024-01-14T16:45:00Z",
-    },
-  },
-  "DSP-003": {
-    id: "DSP-003",
-    escrowId: "ESC-2024-0156",
-    escrowTitle: "E-commerce Platform",
-    amount: 1200000,
-    status: "awaiting_response",
-    reason: "scope_disagreement",
-    description: "Dispute over additional feature requests and timeline extensions.",
-    client: { name: "RetailMax Nigeria", email: "retail@example.com" },
-    vendor: { name: "TechBuilders Ltd", email: "tech@example.com" },
-    openedBy: "client",
-    openedAt: "2024-01-15T11:00:00Z",
-    updatedAt: "2024-01-18T09:30:00Z",
-    respondByDeadline: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-    buyerEvidence: mockBuyerEvidence.slice(0, 2),
-    vendorEvidence: [],
-    timeline: [
-      { id: "1", type: "opened", title: "Dispute Opened", description: "Buyer raised a scope disagreement.", timestamp: "2024-01-15T11:00:00Z", actor: "RetailMax Nigeria", actorRole: "client" },
-      { id: "2", type: "evidence", title: "Buyer Submitted Evidence", description: "Project scope documents uploaded.", timestamp: "2024-01-15T12:00:00Z", actor: "RetailMax Nigeria", actorRole: "client" },
-      { id: "3", type: "admin_message", title: "Waiting for Vendor Response", description: "Vendor has been notified and has 48 hours to respond.", timestamp: "2024-01-15T12:30:00Z", actor: "System", actorRole: "system" },
-    ],
-  },
+const dbReasonToLabel: Record<string, string> = {
+  service_not_delivered: "item_not_delivered",
+  quality_issues: "work_quality_issues",
+  late_delivery: "deadline_missed",
+  payment_dispute: "payment_issues",
+  communication_issues: "communication_breakdown",
+  scope_disagreement: "scope_disagreement",
+  other: "other",
 };
 
 const reasonLabels: Record<string, string> = {
@@ -140,17 +58,163 @@ const reasonLabels: Record<string, string> = {
   communication_breakdown: "Communication breakdown",
   scope_disagreement: "Scope disagreement",
   deadline_missed: "Deadline missed",
+  service_not_delivered: "Service not delivered",
+  quality_issues: "Quality issues",
+  late_delivery: "Late delivery",
+  payment_dispute: "Payment dispute",
+  communication_issues: "Communication issues",
   other: "Other",
+};
+
+const eventTypeMap: Record<string, DisputeEvent["type"]> = {
+  opened: "opened",
+  response: "response",
+  evidence: "evidence",
+  admin_message: "admin_message",
+  escalated: "escalated",
+  resolved: "resolved",
+  closed: "closed",
 };
 
 const DisputeDetail = ({ userType }: DisputeDetailProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [vendorResponseText, setVendorResponseText] = useState("");
+  const [dispute, setDispute] = useState<Dispute | null>(null);
+  const [loading, setLoading] = useState(true);
   const [adminSelectedAction, setAdminSelectedAction] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
 
-  const dispute = mockDisputes[id || "DSP-001"] || mockDisputes["DSP-001"];
+  const fetchDispute = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch dispute with transaction
+      const { data: d, error } = await supabase
+        .from("disputes")
+        .select("*, transactions(*)")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      if (!d) return;
+
+      const tx = d.transactions as any;
+
+      // Fetch profiles, evidence, events in parallel
+      const userIds = new Set<string>();
+      if (tx?.client_id) userIds.add(tx.client_id);
+      if (tx?.vendor_id) userIds.add(tx.vendor_id);
+
+      const [profilesRes, evidenceRes, eventsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", Array.from(userIds)),
+        supabase
+          .from("dispute_evidence")
+          .select("*")
+          .eq("dispute_id", id)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("dispute_events")
+          .select("*")
+          .eq("dispute_id", id)
+          .order("created_at", { ascending: true }),
+      ]);
+
+      const profileMap = new Map(
+        (profilesRes.data || []).map((p) => [p.user_id, p])
+      );
+
+      const clientProfile = profileMap.get(tx?.client_id);
+      const vendorProfile = profileMap.get(tx?.vendor_id);
+
+      // Map evidence
+      const allEvidence = (evidenceRes.data || []).map((e): DisputeEvidence => ({
+        id: e.id,
+        type: e.file_type === "image" ? "image" : "document",
+        name: e.file_name,
+        url: e.file_url,
+        uploadedAt: e.created_at,
+        uploadedBy: e.uploaded_by === tx?.client_id ? "client" : "vendor",
+      }));
+
+      const buyerEvidence = allEvidence.filter((e) => e.uploadedBy === "client");
+      const vendorEvidence = allEvidence.filter((e) => e.uploadedBy === "vendor");
+
+      // Map events to timeline
+      const timeline: DisputeEvent[] = (eventsRes.data || []).map((ev): DisputeEvent => {
+        const actorProfile = profileMap.get(ev.user_id || "");
+        const isClient = ev.user_id === tx?.client_id;
+        const isVendor = ev.user_id === tx?.vendor_id;
+        const actorRole: DisputeEvent["actorRole"] = isClient ? "client" : isVendor ? "vendor" : ev.user_id ? "admin" : "system";
+
+        return {
+          id: ev.id,
+          type: eventTypeMap[ev.event_type] || "admin_message",
+          title: ev.event_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          description: ev.description,
+          timestamp: ev.created_at,
+          actor: actorProfile?.full_name || actorProfile?.email || "System",
+          actorRole,
+        };
+      });
+
+      const isOpenedByClient = d.opened_by === tx?.client_id;
+      const createdDate = new Date(d.created_at);
+      const deadline = new Date(createdDate.getTime() + 48 * 60 * 60 * 1000);
+
+      const mappedReason = dbReasonToLabel[d.reason] || d.reason;
+
+      const mapped: Dispute = {
+        id: d.id,
+        escrowId: tx?.id || "",
+        escrowTitle: tx?.title || "Unknown Transaction",
+        amount: tx?.amount || 0,
+        status: d.status,
+        reason: mappedReason,
+        description: d.description,
+        client: {
+          name: clientProfile?.full_name || clientProfile?.email || "Unknown",
+          email: clientProfile?.email || "",
+        },
+        vendor: {
+          name: vendorProfile?.full_name || vendorProfile?.email || "Unknown",
+          email: vendorProfile?.email || "",
+        },
+        openedBy: isOpenedByClient ? "client" : "vendor",
+        openedAt: d.created_at,
+        updatedAt: d.updated_at,
+        respondByDeadline: deadline > new Date() ? deadline.toISOString() : undefined,
+        timeline,
+        buyerEvidence,
+        vendorEvidence,
+        vendorResponse: d.vendor_response || undefined,
+        resolution: d.resolution ? (() => {
+          try {
+            const parsed = typeof d.resolution === "string" ? JSON.parse(d.resolution) : d.resolution;
+            return parsed;
+          } catch {
+            return undefined;
+          }
+        })() : undefined,
+      };
+
+      setDispute(mapped);
+    } catch (error) {
+      console.error("Error fetching dispute:", error);
+      toast({ title: "Error", description: "Failed to load dispute details.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDispute();
+  }, [id]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -173,15 +237,6 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
     console.log("Dispute action:", action, data);
   };
 
-  const handleVendorSubmitResponse = () => {
-    if (!vendorResponseText.trim()) {
-      toast({ title: "Empty response", description: "Please provide an explanation.", variant: "destructive" });
-      return;
-    }
-    toast({ title: "Response submitted", description: "Your response has been recorded. Status changed to Under Review." });
-    setVendorResponseText("");
-  };
-
   const handleAdminAction = (action: string) => {
     const labels: Record<string, string> = {
       refund_buyer: "Refund Buyer",
@@ -191,6 +246,38 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
     toast({ title: "Decision applied", description: `Action: ${labels[action] || action}. Both parties have been notified.` });
     setAdminSelectedAction(null);
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout userType={userType}>
+        <div className="p-6 lg:p-8 space-y-6">
+          <Skeleton className="h-10 w-40" />
+          <div className="flex gap-4">
+            <Skeleton className="w-14 h-14 rounded-2xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-5 w-64" />
+            </div>
+          </div>
+          <Skeleton className="h-64 w-full rounded-2xl" />
+          <Skeleton className="h-48 w-full rounded-2xl" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!dispute) {
+    return (
+      <DashboardLayout userType={userType}>
+        <div className="p-6 lg:p-8 text-center">
+          <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Dispute Not Found</h2>
+          <p className="text-muted-foreground mb-4">The dispute you're looking for doesn't exist or you don't have access.</p>
+          <Button onClick={() => navigate(getBackPath())}>Back to Disputes</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const isResolved = ["resolved", "closed"].includes(dispute.status);
   const isAwaitingVendor = dispute.status === "awaiting_response" || dispute.status === "open";
@@ -212,7 +299,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
             </div>
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-display font-bold">{dispute.id}</h1>
+                <h1 className="text-2xl font-display font-bold">{dispute.id.slice(0, 8).toUpperCase()}</h1>
                 <button onClick={() => copyToClipboard(dispute.id, "Dispute ID")} className="p-1 hover:bg-accent rounded">
                   <Copy className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -221,7 +308,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <DisputeStatusBadge status={dispute.status} />
                 <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded-full">
-                  {reasonLabels[dispute.reason]}
+                  {reasonLabels[dispute.reason] || dispute.reason}
                 </span>
                 {dispute.respondByDeadline && !isResolved && userType !== "client" && (
                   <CountdownTimer deadline={dispute.respondByDeadline} />
@@ -294,7 +381,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
               <div className="mb-4">
                 <p className="text-sm text-muted-foreground mb-1">Reason</p>
                 <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20">
-                  {reasonLabels[dispute.reason]}
+                  {reasonLabels[dispute.reason] || dispute.reason}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">{dispute.description}</p>
@@ -303,7 +390,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
               )}
             </div>
 
-            {/* Vendor Evidence / Response Section */}
+            {/* Vendor Response Section */}
             <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
               <h2 className="text-lg font-display font-semibold mb-4">Vendor's Response</h2>
               {dispute.vendorResponse ? (
@@ -314,7 +401,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                   )}
                 </div>
               ) : userType === "vendor" && !isResolved ? (
-                <VendorResponseForm disputeId={dispute.id} />
+                <VendorResponseForm disputeId={dispute.id} onSuccess={fetchDispute} />
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-6">
                   {isAwaitingVendor ? "Waiting for vendor response..." : "No response submitted."}
@@ -323,10 +410,12 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
             </div>
 
             {/* Timeline */}
-            <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
-              <h2 className="text-lg font-display font-semibold mb-6">Dispute Timeline</h2>
-              <DisputeTimeline events={dispute.timeline} />
-            </div>
+            {dispute.timeline.length > 0 && (
+              <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
+                <h2 className="text-lg font-display font-semibold mb-6">Dispute Timeline</h2>
+                <DisputeTimeline events={dispute.timeline} />
+              </div>
+            )}
 
             {/* Admin Action Panel */}
             {userType === "admin" && !isResolved && (
@@ -402,7 +491,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
               </div>
             )}
 
-            {/* Client/Vendor general actions for non-admin */}
+            {/* Client actions */}
             {userType !== "admin" && !isResolved && userType === "client" && (
               <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
                 <h2 className="text-lg font-display font-semibold mb-4">Actions</h2>
@@ -444,7 +533,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-background">
                 <FileText className="w-5 h-5 text-primary" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{dispute.escrowId}</p>
+                  <p className="font-medium truncate">{dispute.escrowId.slice(0, 8).toUpperCase()}</p>
                   <p className="text-sm text-muted-foreground truncate">{dispute.escrowTitle}</p>
                 </div>
               </div>
