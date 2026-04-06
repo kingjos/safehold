@@ -547,6 +547,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_dispute: {
+        Args: {
+          p_action: string
+          p_dispute_id: string
+          p_partial_amount?: number
+        }
+        Returns: undefined
+      }
       withdraw_wallet: {
         Args: { p_amount: number; p_bank_details?: string }
         Returns: {
