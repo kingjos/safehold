@@ -206,6 +206,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
         })() : undefined,
       };
 
+      setTransactionParties({ clientId: tx?.client_id || "", vendorId: tx?.vendor_id || null });
       setDispute(mapped);
     } catch (error) {
       console.error("Error fetching dispute:", error);
