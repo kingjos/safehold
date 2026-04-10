@@ -85,6 +85,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
   const [adminSelectedAction, setAdminSelectedAction] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
   const [resolving, setResolving] = useState(false);
+  const [transactionParties, setTransactionParties] = useState<{ clientId: string; vendorId: string | null }>({ clientId: "", vendorId: null });
 
   const fetchDispute = async () => {
     if (!id) return;
