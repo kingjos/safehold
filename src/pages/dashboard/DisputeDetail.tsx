@@ -5,6 +5,7 @@ import { DisputeStatusBadge } from "@/components/dispute/DisputeStatusBadge";
 import { DisputeTimeline } from "@/components/dispute/DisputeTimeline";
 import { DisputeActions } from "@/components/dispute/DisputeActions";
 import { EvidenceGallery } from "@/components/dispute/EvidenceGallery";
+import { AdminMessageForm } from "@/components/dispute/AdminMessageForm";
 import { AlertBox } from "@/components/dispute/AlertBox";
 import { CountdownTimer } from "@/components/dispute/CountdownTimer";
 import { VendorResponseForm } from "@/components/dispute/VendorResponseForm";
