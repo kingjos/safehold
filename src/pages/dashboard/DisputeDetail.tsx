@@ -5,6 +5,7 @@ import { DisputeStatusBadge } from "@/components/dispute/DisputeStatusBadge";
 import { DisputeTimeline } from "@/components/dispute/DisputeTimeline";
 import { DisputeActions } from "@/components/dispute/DisputeActions";
 import { EvidenceGallery } from "@/components/dispute/EvidenceGallery";
+import { AdminMessageForm } from "@/components/dispute/AdminMessageForm";
 import { AlertBox } from "@/components/dispute/AlertBox";
 import { CountdownTimer } from "@/components/dispute/CountdownTimer";
 import { VendorResponseForm } from "@/components/dispute/VendorResponseForm";
@@ -84,6 +85,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
   const [adminSelectedAction, setAdminSelectedAction] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
   const [resolving, setResolving] = useState(false);
+  const [transactionParties, setTransactionParties] = useState<{ clientId: string; vendorId: string | null }>({ clientId: "", vendorId: null });
 
   const fetchDispute = async () => {
     if (!id) return;
@@ -204,6 +206,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
         })() : undefined,
       };
 
+      setTransactionParties({ clientId: tx?.client_id || "", vendorId: tx?.vendor_id || null });
       setDispute(mapped);
     } catch (error) {
       console.error("Error fetching dispute:", error);
@@ -434,6 +437,17 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                 <h2 className="text-lg font-display font-semibold mb-6">Dispute Timeline</h2>
                 <DisputeTimeline events={dispute.timeline} />
               </div>
+            )}
+
+            {/* Admin Message */}
+            {userType === "admin" && !isResolved && (
+              <AdminMessageForm
+                disputeId={dispute.id}
+                transactionId={dispute.escrowId}
+                clientId={transactionParties.clientId}
+                vendorId={transactionParties.vendorId}
+                onSuccess={fetchDispute}
+              />
             )}
 
             {/* Admin Action Panel */}
