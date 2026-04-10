@@ -439,6 +439,17 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
               </div>
             )}
 
+            {/* Admin Message */}
+            {userType === "admin" && !isResolved && (
+              <AdminMessageForm
+                disputeId={dispute.id}
+                transactionId={dispute.escrowId}
+                clientId={transactionParties.clientId}
+                vendorId={transactionParties.vendorId}
+                onSuccess={fetchDispute}
+              />
+            )}
+
             {/* Admin Action Panel */}
             {userType === "admin" && !isResolved && (
               <div className="p-6 rounded-2xl bg-card border-2 border-primary/20 shadow-soft">
