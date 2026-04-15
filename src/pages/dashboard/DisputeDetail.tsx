@@ -106,16 +106,8 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
 
       const tx = d.transactions as any;
 
-      // Fetch profiles, evidence, events in parallel
-      const userIds = new Set<string>();
-      if (tx?.client_id) userIds.add(tx.client_id);
-      if (tx?.vendor_id) userIds.add(tx.vendor_id);
-
-      const [profilesRes, evidenceRes, eventsRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id, full_name, email")
-          .in("user_id", Array.from(userIds)),
+      // Fetch evidence and events first to collect all user IDs
+      const [evidenceRes, eventsRes] = await Promise.all([
         supabase
           .from("dispute_evidence")
           .select("*")
@@ -128,8 +120,33 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
           .order("created_at", { ascending: true }),
       ]);
 
+      // Collect all unique user IDs (parties + event actors)
+      const userIds = new Set<string>();
+      if (tx?.client_id) userIds.add(tx.client_id);
+      if (tx?.vendor_id) userIds.add(tx.vendor_id);
+      (eventsRes.data || []).forEach((ev) => {
+        if (ev.user_id) userIds.add(ev.user_id);
+      });
+
+      // Fetch profiles and admin roles for all relevant users
+      const [profilesRes, rolesRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", Array.from(userIds)),
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .eq("role", "admin")
+          .in("user_id", Array.from(userIds)),
+      ]);
+
       const profileMap = new Map(
         (profilesRes.data || []).map((p) => [p.user_id, p])
+      );
+
+      const adminUserIds = new Set(
+        (rolesRes.data || []).map((r) => r.user_id)
       );
 
       const clientProfile = profileMap.get(tx?.client_id);
@@ -153,7 +170,8 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
         const actorProfile = profileMap.get(ev.user_id || "");
         const isClient = ev.user_id === tx?.client_id;
         const isVendor = ev.user_id === tx?.vendor_id;
-        const actorRole: DisputeEvent["actorRole"] = isClient ? "client" : isVendor ? "vendor" : ev.user_id ? "admin" : "system";
+        const isAdmin = ev.user_id ? adminUserIds.has(ev.user_id) : false;
+        const actorRole: DisputeEvent["actorRole"] = isAdmin ? "admin" : isClient ? "client" : isVendor ? "vendor" : ev.user_id ? "admin" : "system";
 
         return {
           id: ev.id,
