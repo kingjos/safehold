@@ -24,6 +24,7 @@ import VendorEscrows from "./pages/dashboard/VendorEscrows";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import AdminSettings from "./pages/dashboard/AdminSettings";
 import AdminDisputes from "./pages/dashboard/AdminDisputes";
+import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
 import CreateEscrow from "./pages/dashboard/CreateEscrow";
 import TransactionDetail from "./pages/dashboard/TransactionDetail";
 import DisputeDetail from "./pages/dashboard/DisputeDetail";
@@ -141,6 +142,11 @@ const App = () => (
               <Route path="/admin/disputes" element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDisputes />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/analytics" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminAnalytics />
                 </ProtectedRoute>
               } />
               <Route path="/admin/disputes/:id" element={

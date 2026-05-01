@@ -13,7 +13,8 @@ import {
   Plus,
   ChevronDown,
   User,
-  AlertTriangle
+  AlertTriangle,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
@@ -46,6 +47,7 @@ const adminLinks = [
   { href: "/admin/users", icon: User, label: "Users" },
   { href: "/admin/transactions", icon: FileText, label: "Transactions" },
   { href: "/admin/disputes", icon: Bell, label: "Disputes" },
+  { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
