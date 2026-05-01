@@ -1,27 +1,40 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
   ArrowLeft,
-  Search,
+  Phone,
   User,
   FileText,
   Calendar,
   Wallet,
   Shield,
-  CheckCircle2
+  CheckCircle2,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDebounce } from "@/hooks/useDebounce";
+
+interface VendorMatch {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string;
+  email: string | null;
+}
 
 const CreateEscrow = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
+    vendorPhone: "",
     vendorEmail: "",
     title: "",
     description: "",
@@ -31,9 +44,50 @@ const CreateEscrow = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [createdEscrowId, setCreatedEscrowId] = useState<string | null>(null);
+
+  // Vendor search state
+  const [vendor, setVendor] = useState<VendorMatch | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const debouncedPhone = useDebounce(formData.vendorPhone, 500);
+
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Live vendor lookup by phone (min 5 digits, debounced 500ms)
+  useEffect(() => {
+    const digits = debouncedPhone.replace(/\D/g, "");
+    if (digits.length < 5) {
+      setVendor(null);
+      setSearched(false);
+      setSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSearching(true);
+    setSearched(false);
+
+    (async () => {
+      const { data, error } = await supabase.rpc("search_vendor_by_phone", {
+        p_phone: digits,
+      });
+      if (cancelled) return;
+      if (error) {
+        console.error("Vendor search error:", error);
+        setVendor(null);
+      } else {
+        setVendor((data && data[0]) || null);
+      }
+      setSearching(false);
+      setSearched(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedPhone]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +114,8 @@ const CreateEscrow = () => {
           description: formData.description,
           amount: amount,
           platform_fee: platformFee,
-          vendor_email: formData.vendorEmail,
+          vendor_id: vendor?.user_id ?? null,
+          vendor_email: vendor?.email ?? formData.vendorEmail ?? null,
           due_date: formData.deadline ? new Date(formData.deadline).toISOString() : null,
           status: 'pending_funding'
         })
@@ -141,23 +196,61 @@ const CreateEscrow = () => {
           {step === 1 && (
             <div className="p-6 rounded-2xl bg-card border border-border shadow-soft animate-slide-up">
               <h2 className="text-lg font-display font-semibold mb-4">Select Vendor</h2>
-              <p className="text-muted-foreground mb-6">Enter the email address of the vendor you want to work with.</p>
-              
+              <p className="text-muted-foreground mb-6">Enter the vendor's phone number to find them on SafeHold.</p>
+
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="vendorEmail">Vendor Email</Label>
+                  <Label htmlFor="vendorPhone">Vendor Phone Number</Label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      id="vendorEmail"
-                      type="email"
-                      placeholder="vendor@example.com"
+                      id="vendorPhone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="off"
+                      placeholder="e.g. 08012345678"
                       className="pl-10"
-                      value={formData.vendorEmail}
-                      onChange={(e) => setFormData({...formData, vendorEmail: e.target.value})}
+                      value={formData.vendorPhone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, vendorPhone: e.target.value })
+                      }
                     />
+                    {searching && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                    )}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Type at least 5 digits to search.
+                  </p>
                 </div>
+
+                {/* Live preview / feedback */}
+                {vendor && (
+                  <div className="p-4 rounded-xl bg-success/5 border border-success/30 flex items-center gap-3 animate-slide-up">
+                    <Avatar className="w-12 h-12">
+                      {vendor.avatar_url && (
+                        <AvatarImage src={vendor.avatar_url} alt={vendor.full_name ?? "Vendor"} />
+                      )}
+                      <AvatarFallback>
+                        {(vendor.full_name ?? "V").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">
+                        {vendor.full_name || "Unnamed vendor"}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">{vendor.phone}</p>
+                    </div>
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  </div>
+                )}
+
+                {!vendor && searched && !searching && (
+                  <div className="p-3 rounded-xl bg-muted/50 border border-border flex items-center gap-2 text-sm text-muted-foreground">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Vendor not found. Check the number and try again.</span>
+                  </div>
+                )}
 
                 <div className="p-4 rounded-xl bg-accent/50 border border-accent">
                   <div className="flex items-start gap-3">
@@ -169,11 +262,11 @@ const CreateEscrow = () => {
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   size="lg"
                   onClick={() => setStep(2)}
-                  disabled={!formData.vendorEmail}
+                  disabled={!vendor}
                 >
                   Continue
                 </Button>
