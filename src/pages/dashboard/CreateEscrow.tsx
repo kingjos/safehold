@@ -114,7 +114,8 @@ const CreateEscrow = () => {
           description: formData.description,
           amount: amount,
           platform_fee: platformFee,
-          vendor_email: formData.vendorEmail,
+          vendor_id: vendor?.user_id ?? null,
+          vendor_email: vendor?.email ?? formData.vendorEmail ?? null,
           due_date: formData.deadline ? new Date(formData.deadline).toISOString() : null,
           status: 'pending_funding'
         })
