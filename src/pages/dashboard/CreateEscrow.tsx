@@ -1,27 +1,40 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
   ArrowLeft,
-  Search,
+  Phone,
   User,
   FileText,
   Calendar,
   Wallet,
   Shield,
-  CheckCircle2
+  CheckCircle2,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDebounce } from "@/hooks/useDebounce";
+
+interface VendorMatch {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string;
+  email: string | null;
+}
 
 const CreateEscrow = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
+    vendorPhone: "",
     vendorEmail: "",
     title: "",
     description: "",
@@ -31,9 +44,50 @@ const CreateEscrow = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [createdEscrowId, setCreatedEscrowId] = useState<string | null>(null);
+
+  // Vendor search state
+  const [vendor, setVendor] = useState<VendorMatch | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const debouncedPhone = useDebounce(formData.vendorPhone, 500);
+
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Live vendor lookup by phone (min 5 digits, debounced 500ms)
+  useEffect(() => {
+    const digits = debouncedPhone.replace(/\D/g, "");
+    if (digits.length < 5) {
+      setVendor(null);
+      setSearched(false);
+      setSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSearching(true);
+    setSearched(false);
+
+    (async () => {
+      const { data, error } = await supabase.rpc("search_vendor_by_phone", {
+        p_phone: digits,
+      });
+      if (cancelled) return;
+      if (error) {
+        console.error("Vendor search error:", error);
+        setVendor(null);
+      } else {
+        setVendor((data && data[0]) || null);
+      }
+      setSearching(false);
+      setSearched(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedPhone]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
