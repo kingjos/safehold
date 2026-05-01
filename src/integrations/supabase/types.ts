@@ -555,6 +555,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_vendor_by_phone: {
+        Args: { p_phone: string }
+        Returns: {
+          avatar_url: string
+          email: string
+          full_name: string
+          phone: string
+          user_id: string
+        }[]
+      }
       withdraw_wallet: {
         Args: { p_amount: number; p_bank_details?: string }
         Returns: {
