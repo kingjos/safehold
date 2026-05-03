@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.paystack-transfer]
 verify_jwt = false
+
+[functions.rls-test-helper]
+verify_jwt = false
