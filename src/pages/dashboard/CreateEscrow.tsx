@@ -439,7 +439,7 @@ const CreateEscrow = () => {
                     size="lg"
                     disabled={!formData.amount || isLoading}
                   >
-                    {isLoading ? "Creating Escrow..." : "Create & Fund Escrow"}
+                    {isLoading ? "Creating Escrow..." : "Create Escrow"}
                   </Button>
                 </div>
               </form>
@@ -447,11 +447,63 @@ const CreateEscrow = () => {
           )}
 
           {step === 4 && (
+            <div className="p-6 rounded-2xl bg-card border border-border shadow-soft animate-slide-up">
+              <h2 className="text-lg font-display font-semibold mb-2">Fund Escrow</h2>
+              <p className="text-muted-foreground mb-6">
+                Move ₦{totalDue.toLocaleString()} from your wallet into secure escrow. Funds are held until you release them to the vendor.
+              </p>
+
+              <div className="p-4 rounded-xl bg-muted space-y-3 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Escrow ID</span>
+                  <span className="font-mono text-xs truncate max-w-[60%]">{createdEscrowId}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Amount + Fee</span>
+                  <span className="font-semibold">₦{totalDue.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-border pt-3">
+                  <span className="text-muted-foreground">Wallet Balance</span>
+                  <span className={`font-semibold ${walletBalance != null && walletBalance < totalDue ? "text-destructive" : ""}`}>
+                    ₦{(walletBalance ?? 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {walletBalance != null && walletBalance < totalDue && (
+                <div className="p-3 mb-4 rounded-xl bg-destructive/10 border border-destructive/30 flex items-start gap-2 text-sm">
+                  <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-destructive font-medium">Insufficient wallet balance</p>
+                    <p className="text-muted-foreground">Top up your wallet, then return to fund this escrow.</p>
+                  </div>
+                  <Link to="/dashboard/wallet">
+                    <Button size="sm" variant="outline">Top up</Button>
+                  </Link>
+                </div>
+              )}
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleFundFromWallet}
+                disabled={isLoading || walletBalance == null || walletBalance < totalDue}
+              >
+                {isLoading ? "Funding..." : `Fund ₦${totalDue.toLocaleString()} from Wallet`}
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                You can also fund this escrow later from the escrow detail page.
+              </p>
+            </div>
+          )}
+
+          {step === 5 && (
             <div className="p-8 rounded-2xl bg-card border border-border shadow-soft text-center animate-slide-up">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-success/10 flex items-center justify-center">
                 <CheckCircle2 className="w-10 h-10 text-success" />
               </div>
-              <h2 className="text-2xl font-display font-bold mb-2">Escrow Created!</h2>
+              <h2 className="text-2xl font-display font-bold mb-2">{funded ? "Escrow Funded!" : "Escrow Created!"}</h2>
               <p className="text-muted-foreground mb-6">
                 Your funds are now secured. The vendor has been notified and can begin work.
               </p>
