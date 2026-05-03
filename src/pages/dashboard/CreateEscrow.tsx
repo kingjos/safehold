@@ -203,32 +203,6 @@ const CreateEscrow = () => {
     }
   };
 
-  const handlePayWithPaystack = async () => {
-    if (!createdEscrowId || !user) return;
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("paystack-initialize", {
-        body: {
-          amount: Math.round(totalDue * 100), // kobo
-          email: user.email,
-          escrow_id: createdEscrowId,
-          callback_url: `${window.location.origin}/dashboard/escrows/${createdEscrowId}`,
-          metadata: { escrow_id: createdEscrowId, user_id: user.id, purpose: "escrow_fund" },
-        },
-      });
-      if (error) throw error;
-      const url = data?.authorization_url || data?.data?.authorization_url;
-      if (!url) throw new Error("No payment URL returned from Paystack.");
-      window.location.href = url;
-    } catch (error: any) {
-      toast({
-        title: "Could not start Paystack payment",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
-  };
 
   return (
     <DashboardLayout userType="client">
