@@ -261,7 +261,7 @@ Deno.test("disputes RLS", async (t) => {
   await t.step("outsider cannot open dispute on others' tx", async () => {
     const { error } = await outsider.client.from("disputes").insert({
       transaction_id: tx.id, opened_by: outsider.id,
-      reason: "not_delivered", description: "intrusion",
+      reason: "service_not_delivered", description: "intrusion",
     });
     assertExists(error);
   });
@@ -269,7 +269,7 @@ Deno.test("disputes RLS", async (t) => {
   await t.step("client opens dispute on own tx", async () => {
     const { data, error } = await client.client.from("disputes").insert({
       transaction_id: tx.id, opened_by: client.id,
-      reason: "not_delivered", description: "Item not delivered",
+      reason: "service_not_delivered", description: "Item not delivered",
     }).select().single();
     assertEquals(error, null);
     disputeId = data!.id;
