@@ -229,16 +229,6 @@ const CreateEscrow = () => {
       setIsLoading(false);
     }
   };
-    } catch (error: any) {
-      toast({
-        title: "Error creating escrow",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <DashboardLayout userType="client">
