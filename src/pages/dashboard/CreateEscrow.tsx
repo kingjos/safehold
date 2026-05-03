@@ -91,6 +91,19 @@ const CreateEscrow = () => {
     };
   }, [debouncedPhone]);
 
+  // Load wallet balance for funding step
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setWalletBalance(data?.balance != null ? Number(data.balance) : 0);
+    })();
+  }, [user, step]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
