@@ -44,6 +44,8 @@ const CreateEscrow = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [createdEscrowId, setCreatedEscrowId] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [funded, setFunded] = useState(false);
 
   // Vendor search state
   const [vendor, setVendor] = useState<VendorMatch | null>(null);
