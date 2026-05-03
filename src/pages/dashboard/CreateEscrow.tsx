@@ -226,8 +226,9 @@ const CreateEscrow = () => {
             {[
               { num: 1, label: "Vendor", icon: User },
               { num: 2, label: "Details", icon: FileText },
-              { num: 3, label: "Payment", icon: Wallet },
-              { num: 4, label: "Complete", icon: CheckCircle2 }
+              { num: 3, label: "Amount", icon: Wallet },
+              { num: 4, label: "Fund", icon: Shield },
+              { num: 5, label: "Complete", icon: CheckCircle2 }
             ].map((s, i) => (
               <div key={s.num} className="flex items-center">
                 <div className={`flex items-center gap-2 ${step >= s.num ? "text-primary" : "text-muted-foreground"}`}>
@@ -238,8 +239,8 @@ const CreateEscrow = () => {
                   </div>
                   <span className="hidden sm:inline font-medium">{s.label}</span>
                 </div>
-                {i < 3 && (
-                  <div className={`w-12 sm:w-24 h-0.5 mx-2 ${step > s.num ? "bg-primary" : "bg-muted"}`} />
+                {i < 4 && (
+                  <div className={`w-8 sm:w-16 h-0.5 mx-2 ${step > s.num ? "bg-primary" : "bg-muted"}`} />
                 )}
               </div>
             ))}
