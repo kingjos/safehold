@@ -46,6 +46,12 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === "set_phone") {
+      const { user_id, phone } = body;
+      await admin.from("profiles").update({ phone }).eq("user_id", user_id);
+      return json({ ok: true });
+    }
+
     if (action === "seed_notification") {
       const { user_id, type, title, message } = body;
       const { data, error } = await admin.from("notifications")
