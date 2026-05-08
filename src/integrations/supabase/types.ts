@@ -550,6 +550,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_dispute_party: {
+        Args: { _dispute_id: string; _user_id: string }
+        Returns: boolean
+      }
       release_escrow_funds: {
         Args: { p_escrow_id: string }
         Returns: {
