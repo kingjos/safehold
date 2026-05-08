@@ -1,138 +1,64 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWallet } from './useWallet';
-import { useAuth } from './useAuth';
 
 export const useEscrowActions = () => {
   const [loading, setLoading] = useState(false);
   const { refetch: refetchWallet } = useWallet();
-  const { user } = useAuth();
 
-  const fundEscrow = async (escrowId: string): Promise<{ success: boolean; error?: string }> => {
+  const callRpc = async (
+    fn:
+      | 'fund_escrow_from_wallet'
+      | 'release_escrow_funds'
+      | 'vendor_accept_escrow'
+      | 'vendor_mark_complete'
+      | 'vendor_decline_escrow'
+      | 'client_cancel_pending_escrow',
+    params: Record<string, unknown>,
+  ): Promise<{ success: boolean; error?: string }> => {
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('fund_escrow_from_wallet', {
-        p_escrow_id: escrowId
-      });
-
+      const { error } = await supabase.rpc(fn as any, params as any);
       if (error) throw error;
-
       refetchWallet();
       return { success: true };
     } catch (error: any) {
-      console.error('Error funding escrow:', error);
+      console.error(`Error calling ${fn}:`, error);
       return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
   };
 
-  const releaseEscrow = async (escrowId: string): Promise<{ success: boolean; error?: string }> => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.rpc('release_escrow_funds', {
-        p_escrow_id: escrowId
-      });
+  const fundEscrow = (escrowId: string) =>
+    callRpc('fund_escrow_from_wallet', { p_escrow_id: escrowId });
 
-      if (error) throw error;
+  const releaseEscrow = (escrowId: string) =>
+    callRpc('release_escrow_funds', { p_escrow_id: escrowId });
 
-      refetchWallet();
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error releasing escrow:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  };
+  // "Start work" is now an explicit accept action
+  const startWork = (escrowId: string) =>
+    callRpc('vendor_accept_escrow', { p_escrow_id: escrowId });
 
-  const startWork = async (escrowId: string): Promise<{ success: boolean; error?: string }> => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({ status: 'in_progress', started_at: new Date().toISOString() })
-        .eq('id', escrowId);
+  const acceptEscrow = startWork;
 
-      if (error) throw error;
+  const declineEscrow = (escrowId: string, reason?: string) =>
+    callRpc('vendor_decline_escrow', { p_escrow_id: escrowId, p_reason: reason ?? null });
 
-      // Create transaction event
-      await supabase.from('transaction_events').insert({
-        transaction_id: escrowId,
-        user_id: user?.id,
-        event_type: 'started',
-        description: 'Vendor started working on the project'
-      });
+  const markComplete = (escrowId: string) =>
+    callRpc('vendor_mark_complete', { p_escrow_id: escrowId });
 
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error starting work:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markComplete = async (escrowId: string): Promise<{ success: boolean; error?: string }> => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({ status: 'pending_release' })
-        .eq('id', escrowId);
-
-      if (error) throw error;
-
-      // Create transaction event
-      await supabase.from('transaction_events').insert({
-        transaction_id: escrowId,
-        user_id: user?.id,
-        event_type: 'pending_release',
-        description: 'Vendor marked the project as completed'
-      });
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error marking complete:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cancelEscrow = async (escrowId: string): Promise<{ success: boolean; error?: string }> => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({ status: 'cancelled' })
-        .eq('id', escrowId);
-
-      if (error) throw error;
-
-      // Create transaction event
-      await supabase.from('transaction_events').insert({
-        transaction_id: escrowId,
-        user_id: user?.id,
-        event_type: 'cancelled',
-        description: 'Transaction was cancelled'
-      });
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error cancelling escrow:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const cancelEscrow = (escrowId: string) =>
+    callRpc('client_cancel_pending_escrow', { p_escrow_id: escrowId });
 
   return {
     loading,
     fundEscrow,
     releaseEscrow,
     startWork,
+    acceptEscrow,
+    declineEscrow,
     markComplete,
-    cancelEscrow
+    cancelEscrow,
   };
 };
