@@ -462,6 +462,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      client_cancel_pending_escrow: {
+        Args: { p_escrow_id: string }
+        Returns: {
+          amount: number
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          funded_at: string | null
+          id: string
+          platform_fee: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["escrow_status"]
+          title: string
+          updated_at: string
+          vendor_email: string | null
+          vendor_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fund_escrow_from_wallet: {
         Args: { p_escrow_id: string }
         Returns: {

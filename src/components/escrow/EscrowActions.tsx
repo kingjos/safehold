@@ -28,7 +28,7 @@ interface EscrowActionsProps {
 }
 
 export function EscrowActions({ escrowId, status, amount, platformFee, userType, onActionComplete }: EscrowActionsProps) {
-  const { fundEscrow, releaseEscrow, startWork, markComplete, cancelEscrow, loading } = useEscrowActions();
+  const { fundEscrow, releaseEscrow, startWork, declineEscrow, markComplete, cancelEscrow, loading } = useEscrowActions();
   const { balance } = useWallet();
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
 
@@ -83,17 +83,35 @@ export function EscrowActions({ escrowId, status, amount, platformFee, userType,
     const result = await startWork(escrowId);
     if (result.success) {
       toast({
-        title: "Work started",
-        description: "You have started working on this project.",
+        title: "Escrow accepted",
+        description: "You have accepted the escrow and started work. The client has been notified.",
       });
       onActionComplete?.();
     } else {
       toast({
-        title: "Failed to start work",
+        title: "Failed to accept escrow",
         description: result.error || "Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  const handleDecline = async () => {
+    const result = await declineEscrow(escrowId);
+    if (result.success) {
+      toast({
+        title: "Escrow declined",
+        description: "The client has been notified and any funds have been refunded.",
+      });
+      onActionComplete?.();
+    } else {
+      toast({
+        title: "Failed to decline escrow",
+        description: result.error || "Please try again.",
+        variant: "destructive",
+      });
+    }
+    setDialogOpen(null);
   };
 
   const handleMarkComplete = async () => {
@@ -249,10 +267,34 @@ export function EscrowActions({ escrowId, status, amount, platformFee, userType,
   return (
     <div className="flex flex-wrap gap-3">
       {status === "funded" && (
-        <Button onClick={handleStartWork} variant="default" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
-          Start Work
-        </Button>
+        <>
+          <Button onClick={handleStartWork} variant="default" disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+            Accept & Start Work
+          </Button>
+          <AlertDialog open={dialogOpen === "decline"} onOpenChange={(open) => setDialogOpen(open ? "decline" : null)}>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" disabled={loading}>
+                <X className="h-4 w-4 mr-2" />
+                Decline
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Decline Escrow</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The client will be notified and the funds will be refunded to their wallet. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep Escrow</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDecline} disabled={loading}>
+                  Decline Escrow
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
       
       {status === "in_progress" && (

@@ -175,17 +175,7 @@ const CreateEscrow = () => {
       });
       if (error) throw error;
 
-      // Notify vendor
-      if (vendor?.user_id) {
-        await supabase.from("notifications").insert({
-          user_id: vendor.user_id,
-          type: "escrow_funded",
-          title: "New Escrow Funded",
-          message: `${formData.title} (₦${Number(formData.amount).toLocaleString()}) is now in escrow.`,
-          transaction_id: createdEscrowId,
-        });
-      }
-
+      // Vendor notification is now created server-side by fund_escrow_from_wallet
       setFunded(true);
       toast({
         title: "Escrow funded",
