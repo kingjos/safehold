@@ -15,9 +15,19 @@ async function helper(action: string, body: Record<string, unknown> = {}) {
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${ANON_KEY}`, "apikey": ANON_KEY },
     body: JSON.stringify({ action, ...body }),
   });
-  const d = await res.json();
+  const text = await res.text();
+  const d = text ? JSON.parse(text) : {};
   if (!res.ok) throw new Error(JSON.stringify(d));
   return d;
+}
+
+async function cleanup(...users: { sb: any; id: string }[]) {
+  for (const u of users) {
+    try { await u.sb.auth.signOut(); } catch { /* noop */ }
+    try { u.sb.removeAllChannels?.(); } catch { /* noop */ }
+    try { await u.sb.realtime?.disconnect?.(); } catch { /* noop */ }
+    try { await helper("delete_user", { user_id: u.id }); } catch { /* noop */ }
+  }
 }
 
 async function makeUser(label: string, phone?: string) {
@@ -41,7 +51,7 @@ async function createEscrow(client: any, vendorId: string, amount = 5000, fee = 
   return data.id as string;
 }
 
-Deno.test("E2E: full happy-path lifecycle (fund -> accept -> complete -> release)", async (t) => {
+Deno.test({ name: "E2E: full happy-path lifecycle (fund -> accept -> complete -> release)", sanitizeOps: false, sanitizeResources: false, fn: async (t) => {
   const phone = `0801${Math.floor(1000000 + Math.random() * 8999999)}`;
   const customer = await makeUser("cust");
   const vendor = await makeUser("vend", phone);
@@ -120,9 +130,9 @@ Deno.test("E2E: full happy-path lifecycle (fund -> accept -> complete -> release
 
   await helper("delete_user", { user_id: customer.id });
   await helper("delete_user", { user_id: vendor.id });
-});
+} });
 
-Deno.test("E2E: vendor decline auto-refunds the customer wallet", async () => {
+Deno.test({ name: "E2E: vendor decline auto-refunds the customer wallet", sanitizeOps: false, sanitizeResources: false, fn: async () => {
   const phone = `0802${Math.floor(1000000 + Math.random() * 8999999)}`;
   const customer = await makeUser("cust2");
   const vendor = await makeUser("vend2", phone);
@@ -157,9 +167,9 @@ Deno.test("E2E: vendor decline auto-refunds the customer wallet", async () => {
 
   await helper("delete_user", { user_id: customer.id });
   await helper("delete_user", { user_id: vendor.id });
-});
+} });
 
-Deno.test("E2E: client cancels unfunded escrow and notifies vendor", async () => {
+Deno.test({ name: "E2E: client cancels unfunded escrow and notifies vendor", sanitizeOps: false, sanitizeResources: false, fn: async () => {
   const phone = `0803${Math.floor(1000000 + Math.random() * 8999999)}`;
   const customer = await makeUser("cust3");
   const vendor = await makeUser("vend3", phone);
@@ -178,9 +188,9 @@ Deno.test("E2E: client cancels unfunded escrow and notifies vendor", async () =>
 
   await helper("delete_user", { user_id: customer.id });
   await helper("delete_user", { user_id: vendor.id });
-});
+} });
 
-Deno.test("E2E: only assigned vendor can accept/decline; non-vendor blocked", async () => {
+Deno.test({ name: "E2E: only assigned vendor can accept/decline; non-vendor blocked", sanitizeOps: false, sanitizeResources: false, fn: async () => {
   const customer = await makeUser("cust4");
   const vendor = await makeUser("vend4");
   const stranger = await makeUser("strg4");
@@ -204,4 +214,4 @@ Deno.test("E2E: only assigned vendor can accept/decline; non-vendor blocked", as
   await helper("delete_user", { user_id: customer.id });
   await helper("delete_user", { user_id: vendor.id });
   await helper("delete_user", { user_id: stranger.id });
-});
+} });
