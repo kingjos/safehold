@@ -61,6 +61,14 @@ Deno.serve(async (req) => {
       return json({ id: data.id });
     }
 
+    if (action === "grant_admin") {
+      const { user_id } = body;
+      const { error } = await admin.from("user_roles")
+        .insert({ user_id, role: "admin" });
+      if (error && !String(error.message).includes("duplicate")) throw error;
+      return json({ ok: true });
+    }
+
     return json({ error: "unknown action" }, 400);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
