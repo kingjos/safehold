@@ -69,7 +69,7 @@ Deno.test({
     await t.step("customer opens dispute", async () => {
       const { data, error } = await customer.sb.from("disputes").insert({
         transaction_id: txId, opened_by: customer.id,
-        reason: "non_delivery", description: "Vendor never delivered the work.",
+        reason: "service_not_delivered", description: "Vendor never delivered the work.",
         status: "open",
       }).select().single();
       assertEquals(error, null);
@@ -192,7 +192,7 @@ Deno.test({
 
     const { data: dispute } = await customer.sb.from("disputes").insert({
       transaction_id: txId, opened_by: customer.id,
-      reason: "quality_issue", description: "Quality concerns",
+      reason: "quality_issues", description: "Quality concerns",
       status: "open",
     }).select().single();
 
@@ -221,7 +221,7 @@ Deno.test({
 
     const { data: dispute } = await customer.sb.from("disputes").insert({
       transaction_id: txId, opened_by: customer.id,
-      reason: "partial_delivery", description: "Half done",
+      reason: "scope_disagreement", description: "Half done",
       status: "open",
     }).select().single();
 
