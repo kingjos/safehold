@@ -15,9 +15,19 @@ async function helper(action: string, body: Record<string, unknown> = {}) {
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${ANON_KEY}`, "apikey": ANON_KEY },
     body: JSON.stringify({ action, ...body }),
   });
-  const d = await res.json();
+  const text = await res.text();
+  const d = text ? JSON.parse(text) : {};
   if (!res.ok) throw new Error(JSON.stringify(d));
   return d;
+}
+
+async function cleanup(...users: { sb: any; id: string }[]) {
+  for (const u of users) {
+    try { await u.sb.auth.signOut(); } catch { /* noop */ }
+    try { u.sb.removeAllChannels?.(); } catch { /* noop */ }
+    try { await u.sb.realtime?.disconnect?.(); } catch { /* noop */ }
+    try { await helper("delete_user", { user_id: u.id }); } catch { /* noop */ }
+  }
 }
 
 async function makeUser(label: string, phone?: string) {
