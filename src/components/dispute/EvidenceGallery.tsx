@@ -56,6 +56,29 @@ export const EvidenceGallery = ({
     }
   };
 
+  const logAudit = async (
+    item: DisputeEvidence,
+    success: boolean,
+    error_message?: string,
+  ) => {
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid || !item.disputeId) return;
+      await supabase.from("evidence_download_audit").insert({
+        user_id: uid,
+        dispute_id: item.disputeId,
+        evidence_id: item.id,
+        file_path: item.url,
+        action: "download",
+        success,
+        error_message: error_message ?? null,
+      });
+    } catch {
+      // best-effort audit; never block download UX
+    }
+  };
+
   const downloadSigned = async (item: DisputeEvidence) => {
     setDownloading(item.id);
     try {
