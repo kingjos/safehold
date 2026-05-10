@@ -441,14 +441,11 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
             </div>
 
             {/* Vendor Response Section */}
-            <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
-              <h2 className="text-lg font-display font-semibold mb-4">Vendor's Response</h2>
+            <div className="p-6 rounded-2xl bg-card border border-border shadow-soft space-y-4">
+              <h2 className="text-lg font-display font-semibold">Vendor's Response</h2>
               {dispute.vendorResponse ? (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground leading-relaxed">{dispute.vendorResponse}</p>
-                  {dispute.vendorEvidence && dispute.vendorEvidence.length > 0 && (
-                    <EvidenceGallery evidence={dispute.vendorEvidence} title="Vendor's Proof" />
-                  )}
                 </div>
               ) : userType === "vendor" && !isResolved ? (
                 <VendorResponseForm disputeId={dispute.id} onSuccess={fetchDispute} />
@@ -456,6 +453,16 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                 <p className="text-sm text-muted-foreground text-center py-6">
                   {isAwaitingVendor ? "Waiting for vendor response..." : "No response submitted."}
                 </p>
+              )}
+              {dispute.vendorEvidence && dispute.vendorEvidence.length > 0 && (
+                <EvidenceGallery evidence={dispute.vendorEvidence} title="Vendor's Proof" />
+              )}
+              {userType === "vendor" && !isResolved && (
+                <EvidenceUploader
+                  disputeId={dispute.id}
+                  title="Upload proof to support your response"
+                  onUploaded={fetchDispute}
+                />
               )}
             </div>
 
