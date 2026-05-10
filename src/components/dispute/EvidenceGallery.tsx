@@ -121,16 +121,28 @@ export const EvidenceGallery = ({
               <p className="text-[10px] text-muted-foreground">
                 {format(new Date(item.uploadedAt), "MMM d, yyyy")}
               </p>
-              <Button
-                size="sm" variant="outline" className="w-full gap-1 h-7 text-xs"
-                onClick={() => openSigned(item)}
-                disabled={opening === item.id}
-              >
-                {opening === item.id
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <ExternalLink className="w-3 h-3" />}
-                View
-              </Button>
+              <div className="grid grid-cols-2 gap-1">
+                <Button
+                  size="sm" variant="outline" className="w-full gap-1 h-7 text-xs px-1"
+                  onClick={() => openSigned(item)}
+                  disabled={opening === item.id}
+                >
+                  {opening === item.id
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <ExternalLink className="w-3 h-3" />}
+                  View
+                </Button>
+                <Button
+                  size="sm" variant="outline" className="w-full gap-1 h-7 text-xs px-1"
+                  onClick={() => downloadSigned(item)}
+                  disabled={downloading === item.id}
+                >
+                  {downloading === item.id
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <Download className="w-3 h-3" />}
+                  Save
+                </Button>
+              </div>
             </div>
           </div>
         ))}
