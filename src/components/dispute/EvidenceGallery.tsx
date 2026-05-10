@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DisputeEvidence } from "@/types/dispute";
-import { FileText, ExternalLink, Loader2 } from "lucide-react";
+import { FileText, ExternalLink, Loader2, Download } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export const EvidenceGallery = ({
 }: EvidenceGalleryProps) => {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [opening, setOpening] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +56,44 @@ export const EvidenceGallery = ({
     }
   };
 
+  const downloadSigned = async (item: DisputeEvidence) => {
+    setDownloading(item.id);
+    try {
+      // Short-lived signed URL with forced download (60s)
+      const { data, error } = await supabase.storage
+        .from("dispute-evidence")
+        .createSignedUrl(item.url, 60, { download: item.name });
+      if (error || !data?.signedUrl) {
+        toast({
+          title: "Cannot download file",
+          description: error?.message ?? "You may not have access to this evidence.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Fetch and trigger a download via blob so the browser saves it directly
+      const res = await fetch(data.signedUrl);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = item.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err: any) {
+      toast({
+        title: "Download failed",
+        description: err?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   if (evidence.length === 0) {
     return (
       <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
@@ -82,16 +121,28 @@ export const EvidenceGallery = ({
               <p className="text-[10px] text-muted-foreground">
                 {format(new Date(item.uploadedAt), "MMM d, yyyy")}
               </p>
-              <Button
-                size="sm" variant="outline" className="w-full gap-1 h-7 text-xs"
-                onClick={() => openSigned(item)}
-                disabled={opening === item.id}
-              >
-                {opening === item.id
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <ExternalLink className="w-3 h-3" />}
-                View
-              </Button>
+              <div className="grid grid-cols-2 gap-1">
+                <Button
+                  size="sm" variant="outline" className="w-full gap-1 h-7 text-xs px-1"
+                  onClick={() => openSigned(item)}
+                  disabled={opening === item.id}
+                >
+                  {opening === item.id
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <ExternalLink className="w-3 h-3" />}
+                  View
+                </Button>
+                <Button
+                  size="sm" variant="outline" className="w-full gap-1 h-7 text-xs px-1"
+                  onClick={() => downloadSigned(item)}
+                  disabled={downloading === item.id}
+                >
+                  {downloading === item.id
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <Download className="w-3 h-3" />}
+                  Save
+                </Button>
+              </div>
             </div>
           </div>
         ))}
