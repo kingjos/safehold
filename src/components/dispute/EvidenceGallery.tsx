@@ -17,6 +17,7 @@ export const EvidenceGallery = ({
 }: EvidenceGalleryProps) => {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [opening, setOpening] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
