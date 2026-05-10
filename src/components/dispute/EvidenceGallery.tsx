@@ -56,6 +56,44 @@ export const EvidenceGallery = ({
     }
   };
 
+  const downloadSigned = async (item: DisputeEvidence) => {
+    setDownloading(item.id);
+    try {
+      // Short-lived signed URL with forced download (60s)
+      const { data, error } = await supabase.storage
+        .from("dispute-evidence")
+        .createSignedUrl(item.url, 60, { download: item.name });
+      if (error || !data?.signedUrl) {
+        toast({
+          title: "Cannot download file",
+          description: error?.message ?? "You may not have access to this evidence.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Fetch and trigger a download via blob so the browser saves it directly
+      const res = await fetch(data.signedUrl);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = item.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err: any) {
+      toast({
+        title: "Download failed",
+        description: err?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   if (evidence.length === 0) {
     return (
       <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
