@@ -65,10 +65,10 @@ export const EvidenceGallery = ({
     try {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id;
-      if (!uid || !item.disputeId) return;
+      if (!uid || !disputeId) return;
       await supabase.from("evidence_download_audit").insert({
         user_id: uid,
-        dispute_id: item.disputeId,
+        dispute_id: disputeId,
         evidence_id: item.id,
         file_path: item.url,
         action: "download",
