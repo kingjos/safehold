@@ -455,7 +455,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                 </p>
               )}
               {dispute.vendorEvidence && dispute.vendorEvidence.length > 0 && (
-                <EvidenceGallery evidence={dispute.vendorEvidence} title="Vendor's Proof" />
+                <EvidenceGallery evidence={dispute.vendorEvidence} title="Vendor's Proof" disputeId={dispute.id} />
               )}
               {userType === "vendor" && !isResolved && (
                 <EvidenceUploader
