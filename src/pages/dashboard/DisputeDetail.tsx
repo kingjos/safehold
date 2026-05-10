@@ -417,17 +417,26 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
             </div>
 
             {/* Buyer Evidence Section */}
-            <div className="p-6 rounded-2xl bg-card border border-border shadow-soft">
-              <h2 className="text-lg font-display font-semibold mb-2">Buyer's Claim</h2>
-              <div className="mb-4">
-                <p className="text-sm text-muted-foreground mb-1">Reason</p>
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20">
-                  {reasonLabels[dispute.reason] || dispute.reason}
-                </span>
+            <div className="p-6 rounded-2xl bg-card border border-border shadow-soft space-y-4">
+              <div>
+                <h2 className="text-lg font-display font-semibold mb-2">Buyer's Claim</h2>
+                <div className="mb-4">
+                  <p className="text-sm text-muted-foreground mb-1">Reason</p>
+                  <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20">
+                    {reasonLabels[dispute.reason] || dispute.reason}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{dispute.description}</p>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4">{dispute.description}</p>
               {dispute.buyerEvidence && dispute.buyerEvidence.length > 0 && (
-                <EvidenceGallery evidence={dispute.buyerEvidence} title="Uploaded Evidence" />
+                <EvidenceGallery evidence={dispute.buyerEvidence} title="Buyer's Evidence" />
+              )}
+              {userType === "client" && !isResolved && (
+                <EvidenceUploader
+                  disputeId={dispute.id}
+                  title="Add evidence to support your claim"
+                  onUploaded={fetchDispute}
+                />
               )}
             </div>
 
