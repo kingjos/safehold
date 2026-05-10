@@ -9,11 +9,12 @@ import { toast } from "@/hooks/use-toast";
 interface EvidenceGalleryProps {
   evidence: DisputeEvidence[];
   title: string;
+  disputeId: string;
   emptyText?: string;
 }
 
 export const EvidenceGallery = ({
-  evidence, title, emptyText = "No evidence submitted",
+  evidence, title, disputeId, emptyText = "No evidence submitted",
 }: EvidenceGalleryProps) => {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [opening, setOpening] = useState<string | null>(null);
