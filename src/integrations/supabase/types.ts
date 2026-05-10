@@ -176,6 +176,42 @@ export type Database = {
           },
         ]
       }
+      evidence_download_audit: {
+        Row: {
+          action: string
+          created_at: string
+          dispute_id: string
+          error_message: string | null
+          evidence_id: string | null
+          file_path: string | null
+          id: string
+          success: boolean
+          user_id: string
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          dispute_id: string
+          error_message?: string | null
+          evidence_id?: string | null
+          file_path?: string | null
+          id?: string
+          success: boolean
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          dispute_id?: string
+          error_message?: string | null
+          evidence_id?: string | null
+          file_path?: string | null
+          id?: string
+          success?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

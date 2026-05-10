@@ -429,7 +429,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                 <p className="text-sm text-muted-foreground leading-relaxed">{dispute.description}</p>
               </div>
               {dispute.buyerEvidence && dispute.buyerEvidence.length > 0 && (
-                <EvidenceGallery evidence={dispute.buyerEvidence} title="Buyer's Evidence" />
+                <EvidenceGallery evidence={dispute.buyerEvidence} title="Buyer's Evidence" disputeId={dispute.id} />
               )}
               {userType === "client" && !isResolved && (
                 <EvidenceUploader
@@ -455,7 +455,7 @@ const DisputeDetail = ({ userType }: DisputeDetailProps) => {
                 </p>
               )}
               {dispute.vendorEvidence && dispute.vendorEvidence.length > 0 && (
-                <EvidenceGallery evidence={dispute.vendorEvidence} title="Vendor's Proof" />
+                <EvidenceGallery evidence={dispute.vendorEvidence} title="Vendor's Proof" disputeId={dispute.id} />
               )}
               {userType === "vendor" && !isResolved && (
                 <EvidenceUploader

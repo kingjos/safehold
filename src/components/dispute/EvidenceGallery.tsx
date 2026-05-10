@@ -9,11 +9,12 @@ import { toast } from "@/hooks/use-toast";
 interface EvidenceGalleryProps {
   evidence: DisputeEvidence[];
   title: string;
+  disputeId: string;
   emptyText?: string;
 }
 
 export const EvidenceGallery = ({
-  evidence, title, emptyText = "No evidence submitted",
+  evidence, title, disputeId, emptyText = "No evidence submitted",
 }: EvidenceGalleryProps) => {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [opening, setOpening] = useState<string | null>(null);
@@ -56,6 +57,29 @@ export const EvidenceGallery = ({
     }
   };
 
+  const logAudit = async (
+    item: DisputeEvidence,
+    success: boolean,
+    error_message?: string,
+  ) => {
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid || !disputeId) return;
+      await supabase.from("evidence_download_audit").insert({
+        user_id: uid,
+        dispute_id: disputeId,
+        evidence_id: item.id,
+        file_path: item.url,
+        action: "download",
+        success,
+        error_message: error_message ?? null,
+      });
+    } catch {
+      // best-effort audit; never block download UX
+    }
+  };
+
   const downloadSigned = async (item: DisputeEvidence) => {
     setDownloading(item.id);
     try {
@@ -64,6 +88,7 @@ export const EvidenceGallery = ({
         .from("dispute-evidence")
         .createSignedUrl(item.url, 60, { download: item.name });
       if (error || !data?.signedUrl) {
+        await logAudit(item, false, error?.message ?? "signed_url_failed");
         toast({
           title: "Cannot download file",
           description: error?.message ?? "You may not have access to this evidence.",
@@ -83,7 +108,9 @@ export const EvidenceGallery = ({
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      await logAudit(item, true);
     } catch (err: any) {
+      await logAudit(item, false, err?.message ?? "download_failed");
       toast({
         title: "Download failed",
         description: err?.message ?? "Please try again.",
