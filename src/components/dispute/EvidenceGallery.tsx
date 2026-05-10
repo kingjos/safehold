@@ -88,6 +88,7 @@ export const EvidenceGallery = ({
         .from("dispute-evidence")
         .createSignedUrl(item.url, 60, { download: item.name });
       if (error || !data?.signedUrl) {
+        await logAudit(item, false, error?.message ?? "signed_url_failed");
         toast({
           title: "Cannot download file",
           description: error?.message ?? "You may not have access to this evidence.",
@@ -107,7 +108,9 @@ export const EvidenceGallery = ({
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      await logAudit(item, true);
     } catch (err: any) {
+      await logAudit(item, false, err?.message ?? "download_failed");
       toast({
         title: "Download failed",
         description: err?.message ?? "Please try again.",
