@@ -36,10 +36,10 @@ export const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/dashboard">
+            <Link to="/login">
               <Button variant="ghost">Sign In</Button>
             </Link>
-            <Link to="/dashboard">
+            <Link to="/register">
               <Button variant="default">Get Started</Button>
             </Link>
           </div>
