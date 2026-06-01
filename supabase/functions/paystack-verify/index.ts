@@ -28,13 +28,12 @@ serve(async (req) => {
       }
     );
 
-    const { data: { user }, error: userError } = await anonClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Fall back to mock test user when no real session (auth bypass mode)
+    const { data: { user } } = await anonClient.auth.getUser();
+    const effectiveUser = user ?? {
+      id: "00000000-0000-0000-0000-000000000000",
+      email: "test@example.com",
+    };
 
     const { reference } = await req.json();
     
@@ -70,7 +69,7 @@ serve(async (req) => {
     }
 
     // Verify user matches
-    if (data.data.metadata?.user_id !== user.id) {
+    if (data.data.metadata?.user_id !== effectiveUser.id) {
       return new Response(JSON.stringify({ error: "User mismatch" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -83,13 +82,13 @@ serve(async (req) => {
     let { data: wallet } = await supabaseClient
       .from("wallets")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", effectiveUser.id)
       .single();
 
     if (!wallet) {
       const { data: newWallet } = await supabaseClient
         .from("wallets")
-        .insert({ user_id: user.id })
+        .insert({ user_id: effectiveUser.id })
         .select()
         .single();
       wallet = newWallet;
@@ -123,7 +122,7 @@ serve(async (req) => {
     // Create transaction record
     await supabaseClient.from("wallet_transactions").insert({
       wallet_id: wallet.id,
-      user_id: user.id,
+      user_id: effectiveUser.id,
       type: "deposit",
       amount: amountInNaira,
       balance_after: newBalance,
