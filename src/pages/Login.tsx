@@ -70,10 +70,10 @@ const Login = () => {
 
     toast({
       title: "Welcome back!",
-      description: "Redirecting to your dashboard...",
+      description: "Redirecting you now...",
     });
     
-    navigate("/dashboard");
+    navigate(from, { replace: true });
   };
 
   if (loading) {
