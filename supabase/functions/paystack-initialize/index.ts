@@ -46,7 +46,7 @@ serve(async (req) => {
       });
     }
 
-    const reference = `wallet_${user.id}_${Date.now()}`;
+    const reference = `wallet_${effectiveUser.id}_${Date.now()}`;
     
     const response = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
