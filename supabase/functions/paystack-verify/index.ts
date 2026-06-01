@@ -71,7 +71,7 @@ serve(async (req) => {
     }
 
     // Verify user matches
-    if (data.data.metadata?.user_id !== effectiveUser.id) {
+    if (data.data.metadata?.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "User mismatch" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -84,13 +84,13 @@ serve(async (req) => {
     let { data: wallet } = await supabaseClient
       .from("wallets")
       .select("*")
-      .eq("user_id", effectiveUser.id)
+      .eq("user_id", user.id)
       .single();
 
     if (!wallet) {
       const { data: newWallet } = await supabaseClient
         .from("wallets")
-        .insert({ user_id: effectiveUser.id })
+        .insert({ user_id: user.id })
         .select()
         .single();
       wallet = newWallet;
@@ -124,7 +124,7 @@ serve(async (req) => {
     // Create transaction record
     await supabaseClient.from("wallet_transactions").insert({
       wallet_id: wallet.id,
-      user_id: effectiveUser.id,
+      user_id: user.id,
       type: "deposit",
       amount: amountInNaira,
       balance_after: newBalance,
