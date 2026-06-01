@@ -22,12 +22,14 @@ serve(async (req) => {
       }
     );
 
-    // Try to get real authenticated user; fall back to mock test user (auth bypass mode)
     const { data: { user } } = await supabaseClient.auth.getUser();
-    const effectiveUser = user ?? {
-      id: "00000000-0000-0000-0000-000000000000",
-      email: "test@example.com",
-    };
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { amount } = await req.json();
 
