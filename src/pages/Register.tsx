@@ -106,10 +106,10 @@ const Register = () => {
 
     toast({
       title: "Account created!",
-      description: "Welcome to SafeHold. Redirecting to your dashboard...",
+      description: "Welcome to SafeHold. Redirecting you now...",
     });
     
-    navigate("/dashboard");
+    navigate(from, { replace: true });
   };
 
   if (loading) {
