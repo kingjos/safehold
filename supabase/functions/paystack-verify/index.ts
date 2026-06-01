@@ -28,12 +28,14 @@ serve(async (req) => {
       }
     );
 
-    // Fall back to mock test user when no real session (auth bypass mode)
     const { data: { user } } = await anonClient.auth.getUser();
-    const effectiveUser = user ?? {
-      id: "00000000-0000-0000-0000-000000000000",
-      email: "test@example.com",
-    };
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { reference } = await req.json();
     
