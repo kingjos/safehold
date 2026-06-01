@@ -48,7 +48,7 @@ serve(async (req) => {
       });
     }
 
-    const reference = `wallet_${effectiveUser.id}_${Date.now()}`;
+    const reference = `wallet_${user.id}_${Date.now()}`;
     
     const response = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -57,12 +57,12 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email: effectiveUser.email,
+        email: user.email,
         amount: Math.round(amount * 100), // Convert to kobo
         reference,
         callback_url: `${req.headers.get("origin")}/dashboard/wallet?payment=success`,
         metadata: {
-          user_id: effectiveUser.id,
+          user_id: user.id,
           type: "wallet_funding",
         },
       }),
