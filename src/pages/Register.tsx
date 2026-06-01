@@ -37,13 +37,17 @@ const Register = () => {
   const { toast } = useToast();
   const { signUp, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract the originally requested page from location state (set by ProtectedRoute)
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
 
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      navigate("/dashboard");
+      navigate(from, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
