@@ -113,6 +113,13 @@ Deno.test("wallets RLS", async (t) => {
     assertExists(error);
   });
 
+  await t.step("user cannot update own wallet balance directly (RPC-only)", async () => {
+    const { data, error } = await a.client.from("wallets").update({ balance: 1 }).eq("user_id", a.id).select();
+    if (!error) assertEquals(data?.length ?? 0, 0);
+    const { data: bal } = await a.client.from("wallets").select("balance").eq("user_id", a.id).single();
+    assertEquals(Number(bal!.balance), 5000);
+  });
+
   await t.step("user cannot update another user's wallet", async () => {
     const { data } = await a.client.from("wallets").update({ balance: 1 }).eq("user_id", b.id).select();
     assertEquals(data?.length ?? 0, 0);
