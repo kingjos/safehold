@@ -109,21 +109,25 @@ Deno.test({
       await cleanup(stranger);
     });
 
-    await t.step("vendor submits response (only vendor_response field allowed)", async () => {
-      const { error } = await vendor.sb.from("disputes")
-        .update({ vendor_response: "Work was delivered on time, see attached." })
-        .eq("id", disputeId);
+    await t.step("vendor submits response via RPC (only vendor_response + status)", async () => {
+      const { error } = await vendor.sb.rpc("vendor_submit_dispute_response", {
+        p_dispute_id: disputeId,
+        p_response: "Work was delivered on time, see attached.",
+        p_evidence_count: 0,
+      });
       assertEquals(error, null);
 
-      const { data } = await customer.sb.from("disputes").select("vendor_response").eq("id", disputeId).single();
+      const { data } = await customer.sb.from("disputes")
+        .select("vendor_response,status").eq("id", disputeId).single();
       assertEquals(data!.vendor_response, "Work was delivered on time, see attached.");
+      assertEquals(data!.status, "under_review");
     });
 
-    await t.step("vendor cannot tamper with status / resolution", async () => {
+    await t.step("vendor cannot tamper with status / resolution via direct UPDATE", async () => {
       await vendor.sb.from("disputes").update({ status: "resolved" }).eq("id", disputeId);
       await vendor.sb.from("disputes").update({ resolution: "free win" }).eq("id", disputeId);
       const { data } = await customer.sb.from("disputes").select("status,resolution").eq("id", disputeId).single();
-      assertEquals(data!.status, "open");
+      assertEquals(data!.status, "under_review");
       assertEquals(data!.resolution, null);
     });
 
