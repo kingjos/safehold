@@ -271,12 +271,13 @@ const VendorEscrows = () => {
 
     setBulkActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({ status: 'pending_release' })
-        .in('id', completable.map(tx => tx.id));
-
-      if (error) throw error;
+      const results = await Promise.all(
+        completable.map((tx) =>
+          supabase.rpc('vendor_mark_complete', { p_escrow_id: tx.id })
+        )
+      );
+      const firstError = results.find((r) => r.error)?.error;
+      if (firstError) throw firstError;
 
       toast({
         title: "Jobs marked complete",
