@@ -272,12 +272,13 @@ const ClientEscrows = () => {
 
     setBulkActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({ status: 'cancelled' })
-        .in('id', cancellable.map(tx => tx.id));
-
-      if (error) throw error;
+      const results = await Promise.all(
+        cancellable.map((tx) =>
+          supabase.rpc('client_cancel_pending_escrow', { p_escrow_id: tx.id })
+        )
+      );
+      const firstError = results.find((r) => r.error)?.error;
+      if (firstError) throw firstError;
 
       toast({
         title: "Escrows cancelled",
