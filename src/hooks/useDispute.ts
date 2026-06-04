@@ -130,19 +130,7 @@ export const useDispute = () => {
         });
       }
 
-      // Update dispute with vendor response and change status
-      const { error: updateError } = await supabase
-        .from("disputes")
-        .update({
-          vendor_response: responseText,
-          status: "under_review" as any,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", disputeId);
-
-      if (updateError) throw updateError;
-
-      // Insert evidence records
+      // Insert evidence records (allowed by dispute_evidence RLS)
       if (uploadedEvidence.length > 0) {
         const { error: evidenceError } = await supabase
           .from("dispute_evidence" as any)
@@ -161,19 +149,14 @@ export const useDispute = () => {
         }
       }
 
-      // Add timeline event
-      const { error: eventError } = await supabase
-        .from("dispute_events")
-        .insert({
-          dispute_id: disputeId,
-          user_id: user.id,
-          event_type: "response",
-          description: `Vendor responded to the dispute${uploadedEvidence.length > 0 ? ` and uploaded ${uploadedEvidence.length} evidence file(s)` : ""}.`,
-        });
+      // SECURITY DEFINER RPC: updates only vendor_response + status, and logs the event.
+      const { error: rpcError } = await supabase.rpc("vendor_submit_dispute_response", {
+        p_dispute_id: disputeId,
+        p_response: responseText,
+        p_evidence_count: uploadedEvidence.length,
+      });
 
-      if (eventError) {
-        console.error("Event insert error:", eventError);
-      }
+      if (rpcError) throw rpcError;
 
       toast({
         title: "Response submitted",
