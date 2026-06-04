@@ -44,24 +44,22 @@ export const useDispute = () => {
 
       const dbReason = reasonToDbReason[reason];
 
-      // Insert dispute
-      const { data: dispute, error: disputeError } = await supabase
-        .from("disputes")
-        .insert({
-          transaction_id: transactionId,
-          opened_by: user.id,
-          reason: dbReason,
-          description,
-        })
-        .select()
-        .single();
+      // SECURITY DEFINER RPC: creates dispute, flips transaction.status to 'disputed',
+      // logs dispute + transaction events, and notifies the counterparty.
+      const { data: dispute, error: rpcError } = await supabase.rpc("create_dispute", {
+        p_transaction_id: transactionId,
+        p_reason: dbReason,
+        p_description: description,
+      });
 
-      if (disputeError) throw disputeError;
+      if (rpcError) throw rpcError;
+      const disputeId = (dispute as any)?.id;
+      if (!disputeId) throw new Error("Failed to create dispute");
 
-      // Upload evidence files
+      // Upload evidence files (dispute_evidence inserts are still allowed via RLS)
       for (const file of files) {
         const fileExt = file.name.split(".").pop();
-        const filePath = `${user.id}/${dispute.id}/${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `${user.id}/${disputeId}/${crypto.randomUUID()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("dispute-evidence")
@@ -77,37 +75,13 @@ export const useDispute = () => {
           .getPublicUrl(filePath);
 
         await supabase.from("dispute_evidence").insert({
-          dispute_id: dispute.id,
+          dispute_id: disputeId,
           uploaded_by: user.id,
           file_name: file.name,
           file_url: urlData.publicUrl,
           file_type: file.type.startsWith("image/") ? "image" : "document",
         });
       }
-
-      // Update transaction status to disputed
-      const { error: txError } = await supabase
-        .from("transactions")
-        .update({ status: "disputed" as any })
-        .eq("id", transactionId);
-
-      if (txError) throw txError;
-
-      // Add dispute event
-      await supabase.from("dispute_events").insert({
-        dispute_id: dispute.id,
-        user_id: user.id,
-        event_type: "opened",
-        description: `Dispute opened: ${description.slice(0, 100)}`,
-      });
-
-      // Add transaction event
-      await supabase.from("transaction_events").insert({
-        transaction_id: transactionId,
-        user_id: user.id,
-        event_type: "disputed",
-        description: "A dispute was raised on this transaction",
-      });
 
       return { success: true };
     } catch (error: any) {
@@ -156,19 +130,7 @@ export const useDispute = () => {
         });
       }
 
-      // Update dispute with vendor response and change status
-      const { error: updateError } = await supabase
-        .from("disputes")
-        .update({
-          vendor_response: responseText,
-          status: "under_review" as any,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", disputeId);
-
-      if (updateError) throw updateError;
-
-      // Insert evidence records
+      // Insert evidence records (allowed by dispute_evidence RLS)
       if (uploadedEvidence.length > 0) {
         const { error: evidenceError } = await supabase
           .from("dispute_evidence" as any)
@@ -187,19 +149,14 @@ export const useDispute = () => {
         }
       }
 
-      // Add timeline event
-      const { error: eventError } = await supabase
-        .from("dispute_events")
-        .insert({
-          dispute_id: disputeId,
-          user_id: user.id,
-          event_type: "response",
-          description: `Vendor responded to the dispute${uploadedEvidence.length > 0 ? ` and uploaded ${uploadedEvidence.length} evidence file(s)` : ""}.`,
-        });
+      // SECURITY DEFINER RPC: updates only vendor_response + status, and logs the event.
+      const { error: rpcError } = await supabase.rpc("vendor_submit_dispute_response", {
+        p_dispute_id: disputeId,
+        p_response: responseText,
+        p_evidence_count: uploadedEvidence.length,
+      });
 
-      if (eventError) {
-        console.error("Event insert error:", eventError);
-      }
+      if (rpcError) throw rpcError;
 
       toast({
         title: "Response submitted",

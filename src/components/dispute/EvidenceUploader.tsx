@@ -74,12 +74,10 @@ export const EvidenceUploader = ({
           continue;
         }
 
-        // Audit event
-        await supabase.from("dispute_events").insert({
-          dispute_id: disputeId,
-          user_id: user.id,
-          event_type: "evidence",
-          description: `Uploaded evidence: ${file.name}`,
+        // Audit event via SECURITY DEFINER RPC (fixed event_type)
+        await supabase.rpc("log_dispute_evidence", {
+          p_dispute_id: disputeId,
+          p_file_name: file.name,
         });
       }
       toast({ title: "Evidence uploaded", description: "Authorized parties and admins can now view it." });
