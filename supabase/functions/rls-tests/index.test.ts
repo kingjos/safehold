@@ -182,18 +182,10 @@ Deno.test("transaction_events RLS", async (t) => {
   const outsider = await createUser("outTE");
   const tx = await seedTx(client, vendor.id);
 
-  await t.step("party can insert event for own transaction", async () => {
+  await t.step("party CANNOT insert events directly (RPC-only after lockdown)", async () => {
     const { error } = await client.client.from("transaction_events").insert({
       transaction_id: tx.id, user_id: client.id,
       event_type: "note", description: "from client",
-    });
-    assertEquals(error, null);
-  });
-
-  await t.step("user cannot insert event with mismatched user_id", async () => {
-    const { error } = await client.client.from("transaction_events").insert({
-      transaction_id: tx.id, user_id: vendor.id,
-      event_type: "spoof", description: "spoofed",
     });
     assertExists(error);
   });
