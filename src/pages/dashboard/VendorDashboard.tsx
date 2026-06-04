@@ -135,26 +135,12 @@ const VendorDashboard = () => {
     
     setMarkingComplete(transactionId);
     try {
-      // Update transaction status to pending_release
-      const { error: updateError } = await supabase
-        .from('transactions')
-        .update({ status: 'pending_release' })
-        .eq('id', transactionId)
-        .eq('vendor_id', user?.id);
+      // SECURITY DEFINER RPC: validates vendor ownership, flips status, logs event.
+      const { error: rpcError } = await supabase.rpc('vendor_mark_complete', {
+        p_escrow_id: transactionId,
+      });
 
-      if (updateError) throw updateError;
-
-      // Add transaction event
-      const { error: eventError } = await supabase
-        .from('transaction_events')
-        .insert({
-          transaction_id: transactionId,
-          event_type: 'marked_complete',
-          description: 'Vendor marked the job as complete',
-          user_id: user?.id
-        });
-
-      if (eventError) console.error('Error creating event:', eventError);
+      if (rpcError) throw rpcError;
 
       toast({
         title: "Job marked as complete",
