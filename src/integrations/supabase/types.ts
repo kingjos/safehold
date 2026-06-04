@@ -524,6 +524,32 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_dispute: {
+        Args: {
+          p_description: string
+          p_reason: Database["public"]["Enums"]["dispute_reason"]
+          p_transaction_id: string
+        }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          opened_by: string
+          reason: Database["public"]["Enums"]["dispute_reason"]
+          resolution: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["dispute_status"]
+          transaction_id: string
+          updated_at: string
+          vendor_response: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "disputes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fund_escrow_from_wallet: {
         Args: { p_escrow_id: string }
         Returns: {
@@ -589,6 +615,10 @@ export type Database = {
       is_dispute_party: {
         Args: { _dispute_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_dispute_evidence: {
+        Args: { p_dispute_id: string; p_file_name: string }
+        Returns: undefined
       }
       release_escrow_funds: {
         Args: { p_escrow_id: string }
@@ -705,6 +735,32 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      vendor_submit_dispute_response: {
+        Args: {
+          p_dispute_id: string
+          p_evidence_count?: number
+          p_response: string
+        }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          opened_by: string
+          reason: Database["public"]["Enums"]["dispute_reason"]
+          resolution: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["dispute_status"]
+          transaction_id: string
+          updated_at: string
+          vendor_response: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "disputes"
           isOneToOne: true
           isSetofReturn: false
         }
