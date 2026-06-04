@@ -281,21 +281,21 @@ Deno.test("disputes RLS", async (t) => {
     assertEquals(o?.length, 0);
   });
 
-  await t.step("vendor can post a response; outsider cannot update", async () => {
-    const { data: vUpd } = await vendor.client.from("disputes")
+  await t.step("vendor CANNOT directly update disputes (RPC-only after lockdown)", async () => {
+    const { data: vUpd, error: vErr } = await vendor.client.from("disputes")
       .update({ vendor_response: "We delivered" }).eq("id", disputeId).select();
-    assertEquals(vUpd?.length, 1);
+    if (!vErr) assertEquals(vUpd?.length ?? 0, 0);
     const { data: oUpd } = await outsider.client.from("disputes")
       .update({ vendor_response: "spoof" }).eq("id", disputeId).select();
     assertEquals(oUpd?.length ?? 0, 0);
   });
 
-  await t.step("dispute parties can add events; outsider cannot", async () => {
-    const { error: ok } = await client.client.from("dispute_events").insert({
+  await t.step("dispute parties CANNOT add events directly (RPC-only after lockdown)", async () => {
+    const { error: clientBlocked } = await client.client.from("dispute_events").insert({
       dispute_id: disputeId, user_id: client.id,
       event_type: "comment", description: "Please respond",
     });
-    assertEquals(ok, null);
+    assertExists(clientBlocked);
     const { error: bad } = await outsider.client.from("dispute_events").insert({
       dispute_id: disputeId, user_id: outsider.id,
       event_type: "intrusion", description: "x",
