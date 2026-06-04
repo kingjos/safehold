@@ -113,6 +113,13 @@ Deno.test("wallets RLS", async (t) => {
     assertExists(error);
   });
 
+  await t.step("user cannot update own wallet balance directly (RPC-only)", async () => {
+    const { data, error } = await a.client.from("wallets").update({ balance: 1 }).eq("user_id", a.id).select();
+    if (!error) assertEquals(data?.length ?? 0, 0);
+    const { data: bal } = await a.client.from("wallets").select("balance").eq("user_id", a.id).single();
+    assertEquals(Number(bal!.balance), 5000);
+  });
+
   await t.step("user cannot update another user's wallet", async () => {
     const { data } = await a.client.from("wallets").update({ balance: 1 }).eq("user_id", b.id).select();
     assertEquals(data?.length ?? 0, 0);
@@ -175,18 +182,10 @@ Deno.test("transaction_events RLS", async (t) => {
   const outsider = await createUser("outTE");
   const tx = await seedTx(client, vendor.id);
 
-  await t.step("party can insert event for own transaction", async () => {
+  await t.step("party CANNOT insert events directly (RPC-only after lockdown)", async () => {
     const { error } = await client.client.from("transaction_events").insert({
       transaction_id: tx.id, user_id: client.id,
       event_type: "note", description: "from client",
-    });
-    assertEquals(error, null);
-  });
-
-  await t.step("user cannot insert event with mismatched user_id", async () => {
-    const { error } = await client.client.from("transaction_events").insert({
-      transaction_id: tx.id, user_id: vendor.id,
-      event_type: "spoof", description: "spoofed",
     });
     assertExists(error);
   });
@@ -282,21 +281,21 @@ Deno.test("disputes RLS", async (t) => {
     assertEquals(o?.length, 0);
   });
 
-  await t.step("vendor can post a response; outsider cannot update", async () => {
-    const { data: vUpd } = await vendor.client.from("disputes")
+  await t.step("vendor CANNOT directly update disputes (RPC-only after lockdown)", async () => {
+    const { data: vUpd, error: vErr } = await vendor.client.from("disputes")
       .update({ vendor_response: "We delivered" }).eq("id", disputeId).select();
-    assertEquals(vUpd?.length, 1);
+    if (!vErr) assertEquals(vUpd?.length ?? 0, 0);
     const { data: oUpd } = await outsider.client.from("disputes")
       .update({ vendor_response: "spoof" }).eq("id", disputeId).select();
     assertEquals(oUpd?.length ?? 0, 0);
   });
 
-  await t.step("dispute parties can add events; outsider cannot", async () => {
-    const { error: ok } = await client.client.from("dispute_events").insert({
+  await t.step("dispute parties CANNOT add events directly (RPC-only after lockdown)", async () => {
+    const { error: clientBlocked } = await client.client.from("dispute_events").insert({
       dispute_id: disputeId, user_id: client.id,
       event_type: "comment", description: "Please respond",
     });
-    assertEquals(ok, null);
+    assertExists(clientBlocked);
     const { error: bad } = await outsider.client.from("dispute_events").insert({
       dispute_id: disputeId, user_id: outsider.id,
       event_type: "intrusion", description: "x",
