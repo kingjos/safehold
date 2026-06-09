@@ -211,7 +211,7 @@ Deno.test({
     });
 
     await t.step("client uploads evidence (storage + dispute_evidence row + log RPC)", async () => {
-      const path = `${client.id}/${disputeId}/client-${rand()}.txt`;
+      const path = `${disputeId}/client-${rand()}.txt`;
       const { error: upErr } = await client.sb.storage.from("dispute-evidence")
         .upload(path, new Blob(["client evidence"], { type: "text/plain" }));
       assertEquals(upErr, null);
@@ -243,7 +243,7 @@ Deno.test({
     });
 
     await t.step("vendor uploads evidence then submits response via RPC", async () => {
-      const path = `${vendor.id}/${disputeId}/vendor-${rand()}.txt`;
+      const path = `${disputeId}/vendor-${rand()}.txt`;
       const { error: upErr } = await vendor.sb.storage.from("dispute-evidence")
         .upload(path, new Blob(["vendor proof"], { type: "text/plain" }));
       assertEquals(upErr, null);
