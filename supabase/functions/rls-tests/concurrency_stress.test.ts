@@ -177,7 +177,7 @@ Deno.test({
     assert(beforeCount >= 5, `expected lifecycle events, got ${beforeCount}`);
 
     // Parallel tamper attempts from both parties.
-    const attempts: Promise<unknown>[] = [];
+    const attempts: any[] = [];
     for (const u of [client, vendor]) {
       for (const ev of before!) {
         attempts.push(u.sb.from("transaction_events").update({ description: "TAMPERED" }).eq("id", ev.id));
@@ -232,7 +232,7 @@ Deno.test({
     const beforeCount = before?.length ?? 0;
     assert(beforeCount >= 3, `expected dispute lifecycle events, got ${beforeCount}`);
 
-    const attempts: Promise<unknown>[] = [];
+    const attempts: any[] = [];
     for (const u of [client, vendor]) {
       for (const ev of before!) {
         attempts.push(u.sb.from("dispute_events").update({ description: "HACKED" }).eq("id", ev.id));
